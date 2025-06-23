@@ -27,12 +27,12 @@ export default class UsersController {
   }
 
   //Ajustar para revocar tokens
-  public async logout({auth}: HttpContext) {
+  public async logout() {
     
   }
 
   public async forgotPassword({request, response}: HttpContext) {
-    const { email, token } = request.only(['email', 'token'])
+    const { email } = request.only(['email'])
 
     const user = await User.findBy('email', email)
 
@@ -45,6 +45,8 @@ export default class UsersController {
             msg: 'El correo electrónico no está registrado en el sistema.',
         })
     }
+
+    const token = Math.floor(10000 + Math.random() * 90000).toString()
 
     await mail.send((message) => {
       message
@@ -63,7 +65,49 @@ export default class UsersController {
     })
   }
 
-  public async resetPassword() {
+  //Falta validar el token generado en forgotPassword
+  public async resetPassword({request, response}: HttpContext) {
+    const { email, token, password, password_confirmation } = request.only(['email', 'token', 'password', 'password_confirmation'])
+
+    const user = await User.findBy('email', email)
+
+    if(!user) {
+        return response.notFound({
+            status: 'error',
+            data: {
+                email:email
+            },
+            msg: 'No se encontró un usuario con el correo proporcionado.',
+        })
+    }
+
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/
+    if (!passwordRegex.test(password)) {
+        return response.badRequest({
+            status: 'error',
+            data: {},
+            msg: 'La nueva contraseña no cumple con los requisitos de seguridad.',
+        })
+    }
+
+    if (password !== password_confirmation) {
+        return response.badRequest({
+            status: 'error',
+            data: {},
+            msg: 'Las contraseñas no coinciden.',
+        })
+    }
+
+    user.password = password
+    await user.save()
+
+    return response.ok({
+        status: 'success',
+        data: {
+            email:email
+        },
+        msg: 'Contraseña restablecida exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.',
+    })
 
   }
 
@@ -186,15 +230,13 @@ export default class UsersController {
     })
   }
 
-  // ¿Se elimina el registro completo o solo se deja en null el campo del qr?
   public async deleteQr({ params, response }: HttpContext) {
     const qrUser = await UserQrCode.findBy('userId', params.id)
     const user = await User.find(params.id)
 
     if(user) {
         if (qrUser) {
-            qrUser.qrToken = ''
-            await qrUser.save()
+            await qrUser.delete()
 
             return response.ok({
             status: 'success',
