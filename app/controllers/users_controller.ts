@@ -1,17 +1,42 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
 import UserQrCode from '#models/user_qr_code'
 import QRCode from 'qrcode'
 import { v4 as uuidv4 } from 'uuid'
 import mail from '@adonisjs/mail/services/main'
+import Otp from '#models/otp'
 
 export default class UsersController {
-  public async accessByQr({ request, auth }: HttpContext) {
+  public async accessByQr({ request, auth, response }: HttpContext) {
     const { email, password } = request.all()
-    const user = await User.verifyCredentials(email, password)
+    let user: User
 
-    // to generate a token
+    try {
+        user = await User.verifyCredentials(email, password)
+    } catch {
+        return response.unauthorized({
+            status: 'error',
+            data: {},
+            msg: 'Credenciales incorrectas.',
+        })
+    }
+
     return await auth.use('jwt').generate(user)
+
+    // try {
+    //   await auth.authenticate()
+    //   const authUser  = auth.getUserOrFail()
+    //   const refreshToken = await User.refreshTokens.create(authUser)
+    //   return response.ok({
+    //       status: 'success',
+    //       data: {
+    //         refreshToken: refreshToken
+    //       },
+    //       msg: 'Token refrescado correctamente.',
+    //   })
+    // } catch {
+    //   return await auth.use('jwt').generate(user)
+    // }
   }
 
   //Borrar después de pruebas
@@ -47,6 +72,11 @@ export default class UsersController {
     }
 
     const token = Math.floor(10000 + Math.random() * 90000).toString()
+    await Otp.create({
+      userId: user.id,
+      token: token,
+      isActive: true
+    })
 
     await mail.send((message) => {
       message
@@ -65,7 +95,6 @@ export default class UsersController {
     })
   }
 
-  //Falta validar el token generado en forgotPassword
   public async resetPassword({request, response}: HttpContext) {
     const { email, token, password, password_confirmation } = request.only(['email', 'token', 'password', 'password_confirmation'])
 
@@ -79,6 +108,22 @@ export default class UsersController {
             },
             msg: 'No se encontró un usuario con el correo proporcionado.',
         })
+    }
+
+    const verifyToken = await Otp.query()
+      .where('token', token)
+      .andWhere('user_id', user.id)
+      .andWhere('is_active', true)
+      .first()
+
+    if(!verifyToken) {
+      return response.notFound({
+          status: 'error',
+          data: {
+              email:email
+          },
+          msg: 'El token proporcionado no es correcto.',
+      })
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/
@@ -98,6 +143,8 @@ export default class UsersController {
         })
     }
 
+    verifyToken.isActive = false
+    await verifyToken.save()
     user.password = password
     await user.save()
 
