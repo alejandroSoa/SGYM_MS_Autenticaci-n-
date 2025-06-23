@@ -20,7 +20,8 @@ router.get('/', async () => {
 router.post('/users', [UsersController, 'crear'])
 
 router.post('/access/qr', [UsersController, 'accessByQr'])
-router.post('/auth/logout', [UsersController, 'logout'])
+router.post('/access/refresh', [UsersController, 'refresh'])
+router.post('/auth/logout', [UsersController, 'logout']).use(middleware.auth())
 
 router.post('/auth/forgot-password', [UsersController, 'forgotPassword'])
 router.post('/auth/reset-password', [UsersController, 'resetPassword'])

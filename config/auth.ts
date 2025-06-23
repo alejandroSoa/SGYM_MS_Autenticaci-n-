@@ -26,7 +26,7 @@ const authConfig = defineConfig({
       // tokenName is the name of the token passed as cookie, it can be optional, by default it is 'token'
       tokenName: 'custom-name',
       // tokenExpiresIn can be a string or a number, it can be optional
-      tokenExpiresIn: '5m',
+      tokenExpiresIn: '1m',
       // if you want to use cookies for the authentication instead of the bearer token (optional)
       // useCookies: true,
       // secret is the secret used to sign the token, it can be optional, by default it uses the application key

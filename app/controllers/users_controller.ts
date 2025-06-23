@@ -5,6 +5,7 @@ import QRCode from 'qrcode'
 import { v4 as uuidv4 } from 'uuid'
 import mail from '@adonisjs/mail/services/main'
 import Otp from '#models/otp'
+import JwtRefreshToken from '#models/jwt_refresh_token'
 
 export default class UsersController {
   public async accessByQr({ request, auth, response }: HttpContext) {
@@ -21,22 +22,38 @@ export default class UsersController {
         })
     }
 
-    return await auth.use('jwt').generate(user)
+    // return await auth.use('jwt').generate(user)
 
-    // try {
-    //   await auth.authenticate()
-    //   const authUser  = auth.getUserOrFail()
-    //   const refreshToken = await User.refreshTokens.create(authUser)
-    //   return response.ok({
-    //       status: 'success',
-    //       data: {
-    //         refreshToken: refreshToken
-    //       },
-    //       msg: 'Token refrescado correctamente.',
-    //   })
-    // } catch {
-    //   return await auth.use('jwt').generate(user)
-    // }
+    try {
+      const refreshToken = await User.refreshTokens.create(user)
+      const accessToken = await auth.use('jwt').generate(user)
+      const jwt = accessToken as { token: string }
+      return response.ok({
+          status: 'success',
+          data: {
+            access_token: jwt.token,
+            refreshToken: refreshToken
+          },
+          msg: 'Tokens generados correctamente.',
+      })
+    } catch {
+      
+    }
+  }
+
+  public async refresh({auth, response}: HttpContext) {
+    const user = await auth.use('jwt').authenticateWithRefreshToken()
+    const newRefreshToken = user.currentToken
+    const newToken = await auth.use('jwt').generate(user)
+
+    return response.ok({
+      status: 'success',
+      data: {
+        token: newToken,
+        refreshToken: newRefreshToken,
+      },
+      msg: 'Token refrescado correctamente'
+    })
   }
 
   //Borrar después de pruebas
@@ -51,9 +68,23 @@ export default class UsersController {
     return response.created(newUser)
   }
 
-  //Ajustar para revocar tokens
-  public async logout() {
-    
+  public async logout({auth, response}: HttpContext) {
+      try {
+        const user = await auth.authenticate()
+        await JwtRefreshToken.query().where('tokenable_id', user.id).delete()
+        return response.ok({
+          status: 'success',
+          data: {},
+          msg: 'Sesión cerrada correctamente'
+        })
+      } catch (error) {
+        return response.internalServerError({
+          status: 'error',
+          data: {},
+          msg: 'No se pudo cerrar la sesión. Intenta de nuevo.',
+          error: error.message,
+        })
+      }
   }
 
   public async forgotPassword({request, response}: HttpContext) {
