@@ -8,7 +8,8 @@ import User from '#models/user'
 import env from '#start/env'
 
 interface JwtContent extends BaseJwtContent {
-  email: string
+  email: string,
+  roleId: number
 }
 
 const authConfig = defineConfig({
@@ -26,7 +27,7 @@ const authConfig = defineConfig({
       // tokenName is the name of the token passed as cookie, it can be optional, by default it is 'token'
       tokenName: 'custom-name',
       // tokenExpiresIn can be a string or a number, it can be optional
-      tokenExpiresIn: '1m',
+      tokenExpiresIn: '1h',
       // if you want to use cookies for the authentication instead of the bearer token (optional)
       // useCookies: true,
       // secret is the secret used to sign the token, it can be optional, by default it uses the application key
@@ -46,6 +47,7 @@ const authConfig = defineConfig({
         return {
           userId: user.getId(),
           email: (user.getOriginal() as User).email,
+          roleId: (user.getOriginal() as User).roleId
         }
       },
     }),

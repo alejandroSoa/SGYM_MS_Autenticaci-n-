@@ -5,7 +5,9 @@ import QRCode from 'qrcode'
 import { v4 as uuidv4 } from 'uuid'
 import mail from '@adonisjs/mail/services/main'
 import Otp from '#models/otp'
+import Role from '#models/role'
 import JwtRefreshToken from '#models/jwt_refresh_token'
+import { convertToObject } from 'typescript'
 
 export default class UsersController {
   public async accessByQr({ request, auth, response }: HttpContext) {
@@ -58,9 +60,9 @@ export default class UsersController {
 
   //Borrar después de pruebas
   public async crear({request, response}: HttpContext) {
-    const { email, password } = request.all()
+    const { email, password, role_id } = request.all()
     const newUser = await User.create({
-        roleId: 1,
+        roleId: role_id,
         email: email,
         password: password,
         isActive: true
@@ -243,8 +245,9 @@ export default class UsersController {
     })
   }
 
-  public async generateQr({ params, response }: HttpContext) {
+  public async generateQr({ params, response, auth }: HttpContext) {
     const userId = Number(params.id)
+    const requester = await auth.authenticate()
 
     const user = await User.find(userId)
     if (!user) {
@@ -252,6 +255,19 @@ export default class UsersController {
         status: 'error',
         data: {},
         msg: 'Usuario no encontrado.'
+      })
+    }
+
+    const role = await Role.find(requester.id)
+
+    if (
+      !['admin', 'receptionist'].includes(role?.name ?? '') &&
+      requester.id !== user.id
+    ) {
+      return response.forbidden({
+        status: 'error',
+        data: {},
+        msg: 'No tiene permisos para realizar esta acción.',
       })
     }
 
@@ -274,8 +290,9 @@ export default class UsersController {
     })
   }
 
-  public async getQr({ params, response }: HttpContext) {
+  public async getQr({ params, response, auth }: HttpContext) {
     const userId = Number(params.id)
+    const requester = await auth.authenticate()
 
     const user = await User.find(userId)
     if (!user) {
@@ -283,6 +300,19 @@ export default class UsersController {
         status: 'error',
         data: {},
         msg: 'Usuario no encontrado.',
+      })
+    }
+
+    const role = await Role.find(requester.id)
+
+    if (
+      !['admin', 'receptionist'].includes(role?.name ?? '') &&
+      requester.id !== user.id
+    ) {
+      return response.forbidden({
+        status: 'error',
+        data: {},
+        msg: 'No tiene permisos para realizar esta acción.',
       })
     }
 
@@ -308,34 +338,46 @@ export default class UsersController {
     })
   }
 
-  public async deleteQr({ params, response }: HttpContext) {
-    const qrUser = await UserQrCode.findBy('userId', params.id)
+  public async deleteQr({ params, response, auth }: HttpContext) {
     const user = await User.find(params.id)
+    const requester = await auth.authenticate()
 
-    if(user) {
-        if (qrUser) {
-            await qrUser.delete()
-
-            return response.ok({
-            status: 'success',
-            data: {
-                user_id: qrUser.userId,
-            },
-            msg: 'Código QR eliminado correctamente.',
-            })
-        } else {
-            return response.notFound({
-            status: 'error',
-            data: {},
-            msg: 'Código QR no encontrado para el usuario.',
-            })
-        }
-    } else {
+    if(!user) {
         return response.notFound({
             status: 'error',
             data: {},
             msg: 'Usuario no encontrado',
         })
     }
+
+    const role = await Role.find(requester.id)
+
+    if (!['admin', 'receptionist'].includes(role?.name ?? '')) {
+      return response.forbidden({
+        status: 'error',
+        data: {},
+        msg: 'No tiene permisos para realizar esta acción.',
+      })
+    }
+
+    const qrUser = await UserQrCode.findBy('userId', params.id)
+
+    if(!qrUser) {
+      return response.notFound({
+      status: 'error',
+      data: {},
+      msg: 'Código QR no encontrado para el usuario.',
+      })
+    }
+
+    await qrUser.delete()
+
+    return response.ok({
+      status: 'success',
+      data: {
+          user_id: qrUser.userId,
+      },
+      msg: 'Código QR eliminado correctamente.',
+    })
   }
 }
