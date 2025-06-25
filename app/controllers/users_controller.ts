@@ -8,6 +8,10 @@ import Otp from '#models/otp'
 import Role from '#models/role'
 import JwtRefreshToken from '#models/jwt_refresh_token'
 import { convertToObject } from 'typescript'
+import Subscription from '#models/subscription'
+import Membership from '#models/membership'
+import { DateTime } from 'luxon'
+
 
 export default class UsersController {
   public async accessByQr({ request, auth, response }: HttpContext) {
@@ -42,6 +46,122 @@ export default class UsersController {
       
     }
   }
+
+
+  public async accessByQrI({ request, response }: HttpContext) {
+  try {
+    const { qr_token } = request.only(['qr_token'])
+    console.log('[INFO] QR Token recibido:', qr_token)
+
+    if (!qr_token) {
+      console.warn('[WARN] Token QR no proporcionado')
+      return response.badRequest({
+        status: 'error',
+        data: {},
+        msg: 'Token QR requerido.',
+      })
+    }
+
+    const userQrCode = await UserQrCode.findBy('qrToken', qr_token)
+    console.log('[INFO] Resultado de UserQrCode:', userQrCode)
+
+    if (!userQrCode) {
+      console.warn('[WARN] QR inválido o no registrado')
+      return response.status(404).json({
+        status: 'error',
+        data: {},
+        msg: 'QR inválido o no registrado.',
+      })
+    }
+
+    const user = await User.find(userQrCode.userId)
+    console.log('[INFO] Usuario encontrado:', user)
+
+    if (!user) {
+      console.warn('[WARN] Usuario no encontrado con ID:', userQrCode.userId)
+      return response.status(404).json({
+        status: 'error',
+        data: {},
+        msg: 'Usuario no encontrado.',
+      })
+    }
+
+    if (!user.isActive) {
+      console.warn('[WARN] Usuario inactivo:', user.id)
+      return response.status(403).json({
+        status: 'error',
+        data: {
+          user_id: user.id,
+        },
+        msg: 'Usuario inactivo. Contacte a recepción.',
+      })
+    }
+
+    const subscription = await Subscription.query()
+      .where('user_id', user.id)
+      .andWhere('status', 'active')
+      .first()
+
+    console.log('[INFO] Suscripción activa encontrada:', subscription)
+
+    if (!subscription) {
+      const expiredSubscription = await Subscription.query()
+        .where('user_id', user.id)
+        .orderBy('end_date', 'desc')
+        .first()
+
+      console.warn('[WARN] No hay suscripción activa. Última suscripción encontrada:', expiredSubscription)
+
+      return response.status(403).json({
+        status: 'error',
+        data: {
+          user_id: user.id,
+          subscription_status: expiredSubscription?.status || 'none',
+        },
+        msg: 'Suscripción expirada. No se permite el acceso.',
+      })
+    }
+
+    const membership = await Membership.find(subscription.membershipId)
+    console.log('[INFO] Membresía encontrada:', membership)
+
+    if (!membership) {
+      console.error('[ERROR] Membresía no encontrada con ID:', subscription.membershipId)
+      return response.status(500).json({
+        status: 'error',
+        data: {},
+        msg: 'Error inesperado del servidor',
+      })
+    }
+
+    const accessTime = DateTime.now()
+    console.log('[INFO] Acceso autorizado en:', accessTime.toISO())
+
+    return response.ok({
+      status: 'success',
+      data: {
+        user_id: user.id,
+        email: user.email,
+        subscription_status: subscription.status,
+        membership: membership.name,
+        valid_until: subscription.endDate.toISODate(),
+        access_time: accessTime.toISO(),
+      },
+      msg: `Acceso permitido. Bienvenido ${user.email}.`,
+    })
+  } catch (error) {
+    console.error('[ERROR] Excepción atrapada en accessByQrI:', error)
+    return response.status(500).json({
+      status: 'error',
+      data: {},
+      msg: 'Error inesperado del servidor',
+    })
+  }
+}
+
+
+
+
 
   public async refresh({auth, response}: HttpContext) {
     const user = await auth.use('jwt').authenticateWithRefreshToken()

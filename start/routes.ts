@@ -20,7 +20,7 @@ router.get('/', async () => {
 //Borrar
 router.post('/users', [UsersController, 'crear'])
 
-router.post('/access/qr', [UsersController, 'accessByQr'])
+
 router.post('/access/refresh', [UsersController, 'refresh'])
 router.post('/auth/logout', [UsersController, 'logout']).use(middleware.auth())
 
@@ -47,3 +47,4 @@ router.group(() => {
 }).prefix('/oauth')
 
 
+router.post('/access/qr', [UsersController, 'accessByQrI'])
