@@ -5,21 +5,24 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Registro</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
 
-  body {
-  background: url('/images/gym-bg.jpg') no-repeat center center fixed;
-  background-size: cover;
-  font-family: 'Arial', sans-serif;
-  position: relative;
-  min-height: 100vh;
-  margin: 0;
-}
+    body {
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background: url('https://i.postimg.cc/xTf1s4CN/d973cec2-bb1b-488d-b74f-5c6411868c87.jpg') no-repeat center center fixed;
+      background-size: cover;
+      position: relative;
+      min-height: 100vh;
+    }
 
     body::before {
       content: "";
       position: absolute;
       inset: 0;
-      background-color: rgba(80, 0, 150, 0.6);
+      background-color: rgba(95, 0, 160, 0.7);
       z-index: -1;
     }
 
@@ -35,30 +38,56 @@
       width: 100%;
       max-width: 400px;
       background: white;
-      border-radius: 1rem;
-      padding: 2rem;
+      border-radius: 1.5rem;
+      overflow: hidden;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .auth-header {
+      background-color: #6a0dad;
+      padding: 1.5rem 1rem 1rem 1rem;
       text-align: center;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-      z-index: 1;
+      color: white;
+      border-top-left-radius: 1.5rem;
+      border-top-right-radius: 1.5rem;
+    }
+
+    .auth-header h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      font-weight: bold;
     }
 
     .auth-tabs {
       display: flex;
-      justify-content: space-around;
-      margin-bottom: 1.5rem;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
     }
 
     .auth-tabs a {
       text-decoration: none;
-      color: #aaa;
       font-weight: bold;
+      color: #ccc;
       border-bottom: 2px solid transparent;
-      padding: 0.5rem;
+      padding-bottom: 0.3rem;
+      transition: all 0.2s ease;
+      font-size: 0.95rem;
     }
 
     .auth-tabs a.active {
-      color: #6a0dad;
-      border-color: #6a0dad;
+      color: white;
+      border-color: white;
+    }
+
+    .auth-form-wrapper {
+      padding: 2rem 1.5rem 1.5rem 1.5rem;
+      background-color: white;
+      border-bottom-left-radius: 1.5rem;
+      border-bottom-right-radius: 1.5rem;
     }
 
     .auth-form {
@@ -68,9 +97,10 @@
     }
 
     .auth-form input {
-      padding: 0.75rem;
-      border: 1px solid #ccc;
-      border-radius: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 2rem;
+      border: none;
+      background-color: #f0f0f0;
       font-size: 1rem;
     }
 
@@ -78,24 +108,16 @@
       background-color: #6a0dad;
       color: white;
       border: none;
-      border-radius: 1rem;
+      border-radius: 2rem;
       padding: 0.75rem;
-      cursor: pointer;
-      font-weight: bold;
       font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
       transition: background-color 0.3s ease;
     }
 
     .auth-form button:hover {
       background-color: #530f9b;
-    }
-
-    .forgot-password {
-      font-size: 0.9rem;
-      color: #6a0dad;
-      text-decoration: none;
-      margin-top: 0.5rem;
-      display: inline-block;
     }
 
     .register-link {
@@ -104,23 +126,64 @@
       color: #6a0dad;
       text-decoration: none;
       font-weight: bold;
+      text-align: center;
+    }
+
+    /* MOBILE SPECIFIC */
+    @media (max-width: 480px) {
+      .auth-container {
+        align-items: flex-end;
+        padding: 0;
+      }
+
+      .auth-box {
+        width: 100%;
+        max-width: none;
+        border-radius: 1.5rem 1.5rem 0 0;
+      }
+
+      .auth-header h1 {
+        font-size: 1.1rem;
+      }
+
+      .auth-tabs a {
+        font-size: 0.85rem;
+        margin: 0 0.5rem;
+      }
+
+      .auth-form input,
+      .auth-form button {
+        font-size: 0.95rem;
+      }
     }
   </style>
 </head>
 <body>
   <div class="auth-container">
     <div class="auth-box">
-      <h1>Registro</h1>
+      <div class="auth-header">
+        <h1>Registro</h1>
+        <div class="auth-tabs">
+          <a href="/oauth/login">Iniciar Sesión</a>
+          <a href="#" class="active">Registrarse</a>
+        </div>
+      </div>
 
-    <form method="POST" action="/oauth/register" class="auth-form">
-  <input type="email" name="email" placeholder="Correo" required />
-  <input type="password" name="password" placeholder="Contraseña" required />
-  <input type="hidden" name="redirect_uri" value="{{ redirectUri }}" />
-  <button type="submit">Registrar</button>
-</form>
+      <div class="auth-form-wrapper">
+      @if(error)
+  <div style="color: red; margin-bottom: 1rem; font-weight: bold;">
+    {{ error }}
+  </div>
+@endif
 
+        <form method="POST" action="/oauth/register" class="auth-form">
+          <input type="email" name="email" placeholder="Correo" required />
+          <input type="password" name="password" placeholder="Contraseña" required />
+          <input type="hidden" name="redirect_uri" value="{{ redirectUri }}" />
+          <button type="submit">Registrar</button>
+        </form>
 
-      <a href="/oauth/login" class="register-link">¿Ya tienes cuenta?</a>
+      </div>
     </div>
   </div>
 </body>

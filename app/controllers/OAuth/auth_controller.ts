@@ -34,31 +34,63 @@ export default class AuthController {
 
   // ===================== REGISTRO =====================
 
-  public async register({ request, auth, response }: HttpContext) {
-    const { email, password, redirect_uri } = request.only(['email', 'password', 'redirect_uri'])
-    const user = await User.create({ email, password, roleId: 1 })
-    const token = await auth.use('jwt').generate(user)
+ public async register({ request, auth, response, view }: HttpContext) {
+  const { email, password, redirect_uri } = request.only(['email', 'password', 'redirect_uri'])
 
-      const url = new URL(redirect_uri)
-      url.searchParams.set('access_token', token.token)
-      return response.redirect().toPath(url.toString())
-    }
+  // Buscar si ya existe un usuario con ese email
+  const existingUser = await User.findBy('email', email)
+
+  if (existingUser) {
+    // Usuario ya existe, regresar a la vista con error y conservar email
+    return view.render('oauth/register', {
+      redirectUri: redirect_uri,
+      error: 'El correo electrónico ya está registrado',
+      oldEmail: email,
+    })
+  }
+
+  // Si no existe, crear usuario
+  const user = await User.create({ email, password, roleId: 1 })
+  const token = await auth.use('jwt').generate(user)
+
+  let redirectUrl: URL
+  try {
+    redirectUrl = new URL(redirect_uri)
+  } catch {
+    return response.redirect('/oauth/login')
+  }
+
+  redirectUrl.searchParams.set('access_token', token.token)
+  return response.redirect(redirectUrl.toString())
+}
+
 
   // ===================== LOGIN =====================
 
-  public async login({ request, auth, response }: HttpContext) {
+  public async login({ request, auth, response, view }: HttpContext) {
     const { email, password, redirect_uri } = request.only(['email', 'password', 'redirect_uri'])
     const user = await User.query().where('email', email).first()
 
     if (!user || !(await hash.use('scrypt').verify(user.password, password))) {
-      return response.unauthorized({ message: 'Credenciales inválidas' })
+      return view.render('oauth/login', {
+        redirectUri: request.input('redirect_uri'),
+        error: 'Credenciales inválidas',
+        // puedes enviar también el email para no hacerlo escribir de nuevo:
+        oldEmail: email,
+      })
     }
 
     const token = await auth.use('jwt').generate(user)
 
-      const url = new URL(redirect_uri)
-      url.searchParams.set('access_token', token.token)
-      return response.redirect(url.toString())
+  let redirectUrl: URL
+  try {
+    redirectUrl = new URL(redirect_uri)
+  } catch {
+    return response.redirect('/oauth/login')
+  }
+
+  redirectUrl.searchParams.set('access_token', token.token)
+  return response.redirect(redirectUrl.toString())
   }
 
   // ===================== REFRESH =====================
@@ -134,64 +166,77 @@ export default class AuthController {
     })
   }
 
-  // ===================== RESET PASSWORD =====================
 
-  public async resetPassword({ request, auth, response }: HttpContext) {
-    const { email, token, password, password_confirmation, redirect_uri } = request.only([
-      'email',
-      'token',
-      'password',
-      'password_confirmation',
-      'redirect_uri',
-    ])
 
-    const user = await User.findBy('email', email)
-    if (!user) {
-      return response.notFound({
-        status: 'error',
-        msg: 'No se encontró un usuario con el correo proporcionado.',
-      })
-    }
+  public async resetPassword({ request, auth, response, view }: HttpContext) {
+  const {
+    email,
+    token,
+    password,
+    password_confirmation,
+    redirect_uri,
+  } = request.only([
+    'email',
+    'token',
+    'password',
+    'password_confirmation',
+    'redirect_uri',
+  ])
 
-    const verifyToken = await Otp.query()
-      .where('token', token)
-      .andWhere('user_id', user.id)
-      .andWhere('is_active', true)
-      .first()
+  const oldInputs = { email, token, redirectUri: redirect_uri }
 
-    if (!verifyToken) {
-      return response.notFound({
-        status: 'error',
-        msg: 'El token proporcionado no es correcto.',
-      })
-    }
+  const user = await User.findBy('email', email)
+  if (!user) {
+    return view.render('oauth/resetpassword', {
+      error: 'No se encontró un usuario con el correo proporcionado.',
+      ...oldInputs,
+    })
+  }
 
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/
-    if (!passwordRegex.test(password)) {
-      return response.badRequest({
-        status: 'error',
-        msg: 'La nueva contraseña no cumple con los requisitos de seguridad.',
-      })
-    }
+  const verifyToken = await Otp.query()
+    .where('token', token)
+    .andWhere('user_id', user.id)
+    .andWhere('is_active', true)
+    .first()
 
-    if (password !== password_confirmation) {
-      return response.badRequest({
-        status: 'error',
-        msg: 'Las contraseñas no coinciden.',
-      })
-    }
+  if (!verifyToken) {
+    return view.render('oauth/resetpassword', {
+      error: 'El token proporcionado no es correcto.',
+      ...oldInputs,
+    })
+  }
 
-    verifyToken.isActive = false
-    await verifyToken.save()
-    user.password = password
-    await user.save()
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/
+  if (!passwordRegex.test(password)) {
+    return view.render('oauth/resetpassword', {
+      error: 'La nueva contraseña no cumple con los requisitos de seguridad.',
+      ...oldInputs,
+    })
+  }
 
-    // 🔒 Autologin después del reset
-    const newToken = await auth.use('jwt').generate(user)
+  if (password !== password_confirmation) {
+    return view.render('oauth/resetpassword', {
+      error: 'Las contraseñas no coinciden.',
+      ...oldInputs,
+    })
+  }
 
-    
-      const url = new URL(redirect_uri)
-      url.searchParams.set('access_token', newToken.token)
-      return response.redirect().toPath(url.toString())
-    }
+  verifyToken.isActive = false
+  await verifyToken.save()
+  user.password = password
+  await user.save()
+
+  const newToken = await auth.use('jwt').generate(user)
+
+  
+  let redirectUrl: URL
+  try {
+    redirectUrl = new URL(redirect_uri)
+  } catch {
+    return response.redirect('/oauth/login')
+  }
+
+  redirectUrl.searchParams.set('access_token', newToken.token)
+  return response.redirect(redirectUrl.toString())
+}
 }
