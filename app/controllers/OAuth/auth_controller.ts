@@ -39,19 +39,10 @@ export default class AuthController {
     const user = await User.create({ email, password, roleId: 1 })
     const token = await auth.use('jwt').generate(user)
 
-    if (redirect_uri) {
       const url = new URL(redirect_uri)
       url.searchParams.set('access_token', token.token)
-      url.searchParams.set('expires_in', (token.expiresIn ?? 3600).toString())
-      return response.redirect().toPath(url.toString())
+       return response.redirect(url.toString())
     }
-
-    return response.ok({
-      access_token: token.token,
-      type: token.type,
-      expires_in: token.expiresIn ?? 3600,
-    })
-  }
 
   // ===================== LOGIN =====================
 
@@ -65,18 +56,9 @@ export default class AuthController {
 
     const token = await auth.use('jwt').generate(user)
 
-    if (redirect_uri) {
       const url = new URL(redirect_uri)
       url.searchParams.set('access_token', token.token)
-      url.searchParams.set('expires_in', (token.expiresIn ?? 3600).toString())
-      return response.redirect().toPath(url.toString())
-    }
-
-    return response.ok({
-      access_token: token.token,
-      type: token.type,
-      expires_in: token.expiresIn ?? 3600,
-    })
+      return response.redirect(url.toString())
   }
 
   // ===================== REFRESH =====================
@@ -207,21 +189,9 @@ export default class AuthController {
     // 🔒 Autologin después del reset
     const newToken = await auth.use('jwt').generate(user)
 
-    if (redirect_uri) {
+    
       const url = new URL(redirect_uri)
       url.searchParams.set('access_token', newToken.token)
-      url.searchParams.set('expires_in', (newToken.expiresIn ?? 3600).toString())
-      return response.redirect().toPath(url.toString())
+    return response.redirect(url.toString())
     }
-
-    return response.ok({
-      status: 'success',
-      msg: 'Contraseña restablecida correctamente',
-      data: {
-        access_token: newToken.token,
-        type: newToken.type,
-        expires_in: newToken.expiresIn ?? 3600,
-      },
-    })
-  }
 }
