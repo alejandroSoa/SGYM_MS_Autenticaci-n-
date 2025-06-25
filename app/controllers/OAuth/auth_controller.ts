@@ -41,7 +41,7 @@ export default class AuthController {
 
       const url = new URL(redirect_uri)
       url.searchParams.set('access_token', token.token)
-       return response.redirect(url.toString())
+      return response.redirect().toPath(url.toString())
     }
 
   // ===================== LOGIN =====================
@@ -192,6 +192,6 @@ export default class AuthController {
     
       const url = new URL(redirect_uri)
       url.searchParams.set('access_token', newToken.token)
-    return response.redirect(url.toString())
+      return response.redirect().toPath(url.toString())
     }
 }
