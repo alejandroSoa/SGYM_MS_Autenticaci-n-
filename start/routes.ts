@@ -10,6 +10,7 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
 const UsersController = () => import('#controllers/users_controller')
+const OauthController = () => import('#controllers/OAuth/auth_controller')
 
 router.get('/', async () => {
   return {
@@ -30,3 +31,19 @@ router.put('/auth/change-password', [UsersController, 'changePassword']).use(mid
 router.get('/users/:id/qr', [UsersController, 'getQr']).use(middleware.auth())
 router.post('/users/:id/qr', [UsersController, 'generateQr']).use(middleware.auth())
 router.delete('/users/:id/qr', [UsersController, 'deleteQr']).use(middleware.auth())
+
+router.group(() => {
+  router.get('/login', [OauthController, 'showLogin']).as('oauth.login')
+  router.get('/register', [OauthController, 'showRegister']).as('oauth.register')
+  router.get('/forgotpassword', [OauthController, 'showForgotPassword']).as('oauth.forgotpassword')
+   router.get('/resetpassword', [OauthController, 'showResetPassword']).as('oauth.resetpassword')
+
+
+  router.post('/login', [OauthController, 'login']).as('oauth.login.submit')
+  router.post('/register', [OauthController, 'register']).as('oauth.register.submit')
+  router.post('/resetpassword', [OauthController, 'resetPassword']).as('oauth.resetpassword.submit')
+  router.post('/forgotpassword', [OauthController, 'forgotPassword']).as('oauth.forgotPassword.submit')
+  
+}).prefix('/oauth')
+
+
