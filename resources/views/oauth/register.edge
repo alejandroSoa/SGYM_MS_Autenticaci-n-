@@ -170,21 +170,87 @@
       </div>
 
       <div class="auth-form-wrapper">
-      @if(error)
-  <div style="color: red; margin-bottom: 1rem; font-weight: bold;">
-    {{ error }}
-  </div>
-@endif
+        @if(error)
+          <div style="color: red; margin-bottom: 1rem; font-weight: bold;">
+            {{ error }}
+          </div>
+        @endif
 
         <form method="POST" action="/oauth/register" class="auth-form">
-          <input type="email" name="email" placeholder="Correo" required />
-          <input type="password" name="password" placeholder="Contraseña" required />
+          <input
+            type="email"
+            name="email"
+            placeholder="Correo"
+            required
+            value="{{ oldEmail || '' }}"
+            pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+            title="Introduce un correo válido"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Contraseña"
+            required
+            autocomplete="new-password"
+          />
+
+          <div
+            id="password-requirements"
+            style="font-size: 0.85rem; color: #666; margin-top: -0.5rem; margin-bottom: 1rem;"
+          >
+            La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial.
+          </div>
+
           <input type="hidden" name="redirect_uri" value="{{ redirectUri }}" />
           <button type="submit">Registrar</button>
         </form>
-
       </div>
     </div>
   </div>
+
+  <script>
+    const passwordInput = document.querySelector('input[name="password"]')
+    const form = document.querySelector('form.auth-form')
+    const fixedMsgDiv = document.getElementById('password-requirements')
+
+    // Crear un div para mostrar mensaje de error dinámico
+    const msgDiv = document.createElement('div')
+    msgDiv.style.color = 'red'
+    msgDiv.style.fontSize = '0.9rem'
+    msgDiv.style.marginTop = '0.25rem'
+    passwordInput.parentNode.insertBefore(msgDiv, passwordInput.nextSibling)
+
+    function validarPassword(password) {
+      const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/
+      return regex.test(password)
+    }
+
+    passwordInput.addEventListener('input', () => {
+      if (passwordInput.value === '') {
+        msgDiv.textContent = ''
+        passwordInput.style.borderColor = ''
+        fixedMsgDiv.style.display = 'block'
+        return
+      }
+
+      if (!validarPassword(passwordInput.value)) {
+        msgDiv.textContent = 'La contraseña no cumple con los requisitos mínimos.'
+        passwordInput.style.borderColor = 'red'
+        fixedMsgDiv.style.display = 'none'
+      } else {
+        msgDiv.textContent = ''
+        passwordInput.style.borderColor = 'green'
+        fixedMsgDiv.style.display = 'block'
+      }
+    })
+
+    form.addEventListener('submit', (e) => {
+      if (!validarPassword(passwordInput.value)) {
+        e.preventDefault()
+        alert('Por favor, ingresa una contraseña válida que cumpla los requisitos.')
+        passwordInput.focus()
+      }
+    })
+  </script>
 </body>
 </html>
