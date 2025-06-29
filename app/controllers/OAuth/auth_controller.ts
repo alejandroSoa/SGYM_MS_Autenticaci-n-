@@ -4,6 +4,9 @@ import hash from '@adonisjs/core/services/hash'
 import Otp from '#models/otp'
 import JwtRefreshToken from '#models/jwt_refresh_token'
 import mail from '@adonisjs/mail/services/main'
+import Profile from '#models/profile'
+import { DateTime } from 'luxon'
+
 
 export default class AuthController {
   // ===================== VISTAS =====================
@@ -32,6 +35,13 @@ export default class AuthController {
     })
   }
 
+  public async showRegisterProfile({ view, request, params }: HttpContext) {
+  return view.render('oauth/registerprofile', {
+    redirectUri: request.qs().redirect_uri || '',
+    userId: params.user_id,
+  })
+}
+
   // ===================== REGISTRO =====================
 
   public async register({ request, auth, response, view }: HttpContext) {
@@ -59,17 +69,12 @@ export default class AuthController {
 
     // Crear usuario
     const user = await User.create({ email, password, roleId: 1 })
-    const token = await auth.use('jwt').generate(user)
+    
 
-    let redirectUrl: URL
-    try {
-      redirectUrl = new URL(redirect_uri)
-    } catch {
-      return response.redirect('/oauth/login')
-    }
-
-    redirectUrl.searchParams.set('access_token', token.token)
-    return response.redirect(redirectUrl.toString())
+    return view.render('oauth/registerprofile', {
+    redirectUri: request.qs().redirect_uri || '',
+    userId: user.id,
+  })
   }
 
   // ===================== LOGIN =====================
@@ -259,4 +264,123 @@ public async forgotPassword({ request, response, view }: HttpContext) {
     redirectUrl.searchParams.set('access_token', newToken.token)
     return response.redirect(redirectUrl.toString())
   }
+
+
+public async registerProfile({ request, response, view, params, auth }: HttpContext) {
+  const redirectUri = request.qs().redirect_uri || '/oauth/login'
+  const userId = params.user_id
+
+  const { full_name, phone, birth_date, gender } = request.only([
+    'full_name',
+    'phone',
+    'birth_date',
+    'gender',
+  ])
+
+  // Validar campos obligatorios
+  if (!userId || !full_name || !birth_date || !gender) {
+    return view.render('oauth/registerprofile', {
+      redirectUri,
+      error: 'Faltan campos obligatorios: nombre completo, fecha de nacimiento o género.',
+      oldUserId: userId,
+      oldFullName: full_name,
+      oldPhone: phone,
+      oldBirthDate: birth_date,
+      oldGender: gender,
+    })
+  }
+
+  // Validar fecha de nacimiento
+  const birthDate = DateTime.fromISO(birth_date)
+  if (!birthDate.isValid) {
+    return view.render('oauth/registerprofile', {
+      redirectUri,
+      error: 'La fecha de nacimiento no es válida.',
+      oldUserId: userId,
+      oldFullName: full_name,
+      oldPhone: phone,
+      oldBirthDate: birth_date,
+      oldGender: gender,
+    })
+  }
+
+  // Validar teléfono si está presente
+  if (phone && !/^\d{10}$/.test(phone)) {
+    return view.render('oauth/registerprofile', {
+      redirectUri,
+      error: 'El teléfono debe tener 10 dígitos numéricos.',
+      oldUserId: userId,
+      oldFullName: full_name,
+      oldPhone: phone,
+      oldBirthDate: birth_date,
+      oldGender: gender,
+    })
+  }
+
+  try {
+    const existingProfile = await Profile.findBy('user_id', userId)
+if (existingProfile) {
+  return view.render('oauth/registerprofile', {
+    redirectUri,
+    error: 'Ya existe un perfil para este usuario.',
+    oldUserId: userId,
+    oldFullName: full_name,
+    oldPhone: phone,
+    oldBirthDate: birth_date,
+    oldGender: gender,
+  })
 }
+
+    // Crear perfil
+    const profile = new Profile()
+    profile.userId = userId
+    profile.fullName = full_name
+    profile.phone = phone ?? null
+    profile.birthDate = birthDate
+    profile.gender = gender
+
+    await profile.save()
+
+    // Obtener usuario y generar token
+    const user = await User.find(userId)
+    if (!user) {
+      return view.render('oauth/registerprofile', {
+        redirectUri,
+        error: 'No se encontró el usuario asociado.',
+        oldUserId: userId,
+        oldFullName: full_name,
+        oldPhone: phone,
+        oldBirthDate: birth_date,
+        oldGender: gender,
+      })
+    }
+
+    const token = await auth.use('jwt').generate(user)
+
+    let redirectUrl: URL
+    try {
+      redirectUrl = new URL(redirectUri)
+    } catch {
+      return response.redirect('/oauth/login')
+    }
+
+    redirectUrl.searchParams.set('access_token', token.token)
+    return response.redirect(redirectUrl.toString())
+  } catch (error) {
+    console.error(error)
+    return view.render('oauth/registerprofile', {
+      redirectUri,
+      error: 'Ocurrió un error al crear el perfil. Intenta nuevamente.',
+      oldUserId: userId,
+      oldFullName: full_name,
+      oldPhone: phone,
+      oldBirthDate: birth_date,
+      oldGender: gender,
+    })
+  }
+}
+
+
+
+}
+

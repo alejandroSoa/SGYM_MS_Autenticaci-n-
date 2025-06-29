@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Registro de Perfil</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Arial', sans-serif;
+      background: url('https://i.postimg.cc/xTf1s4CN/d973cec2-bb1b-488d-b74f-5c6411868c87.jpg') no-repeat center center fixed;
+      background-size: cover;
+      position: relative;
+      min-height: 100vh;
+    }
+
+    body::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-color: rgba(95, 0, 160, 0.7);
+      z-index: -1;
+    }
+
+    .auth-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    .auth-box {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: 1.5rem;
+      overflow: hidden;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .auth-header {
+      background-color: #6a0dad;
+      padding: 1.5rem 1rem 1rem 1rem;
+      text-align: center;
+      color: white;
+      border-top-left-radius: 1.5rem;
+      border-top-right-radius: 1.5rem;
+    }
+
+    .auth-header h1 {
+      margin: 0;
+      font-size: 1.3rem;
+      font-weight: bold;
+    }
+
+    .auth-form-wrapper {
+      padding: 2rem 1.5rem 1.5rem 1.5rem;
+      background-color: white;
+      border-bottom-left-radius: 1.5rem;
+      border-bottom-right-radius: 1.5rem;
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .auth-form input,
+    .auth-form select {
+      padding: 0.75rem 1rem;
+      border-radius: 2rem;
+      border: none;
+      background-color: #f0f0f0;
+      font-size: 1rem;
+    }
+
+    .auth-form button {
+      background-color: #6a0dad;
+      color: white;
+      border: none;
+      border-radius: 2rem;
+      padding: 0.75rem;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+
+    .auth-form button:hover {
+      background-color: #530f9b;
+    }
+
+    /* MOBILE */
+    @media (max-width: 480px) {
+      .auth-container {
+        align-items: flex-end;
+        padding: 0;
+      }
+
+      .auth-box {
+        width: 100%;
+        max-width: none;
+        border-radius: 1.5rem 1.5rem 0 0;
+      }
+
+      .auth-header h1 {
+        font-size: 1.1rem;
+      }
+
+      .auth-form input,
+      .auth-form select,
+      .auth-form button {
+        font-size: 0.95rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="auth-container">
+    <div class="auth-box">
+      <div class="auth-header">
+        <h1>Registro de Perfil</h1>
+      </div>
+
+      <div class="auth-form-wrapper">
+        @if(error)
+          <div style="color: red; margin-bottom: 1rem; font-weight: bold;">
+            {{ error }}
+          </div>
+        @endif
+
+        <form method="POST" action="/oauth/registerprofile/{{ userId }}?redirect_uri={{ redirectUri }}" class="auth-form">
+          <input
+            type="text"
+            name="full_name"
+            placeholder="Nombre completo"
+            required
+            value="{{ oldFullName || '' }}"
+            minlength="3"
+          />
+
+          <input
+            type="tel"
+            name="phone"
+            id="phone"
+            placeholder="Teléfono"
+            pattern="^\d{10}$"
+            title="Introduce un teléfono válido de 10 dígitos numéricos"
+            value="{{ oldPhone || '' }}"
+            required
+          />
+          <div id="phone-msg" style="color: red; font-size: 0.9rem;"></div>
+
+          <input
+            type="date"
+            name="birth_date"
+            placeholder="Fecha de nacimiento"
+            required
+            max="{{ maxDate }}"
+            value="{{ oldBirthDate || '' }}"
+          />
+
+          <select name="gender" required>
+            <option value="" disabled {{ !oldGender ? 'selected' : '' }}>Género</option>
+            <option value="M" {{ oldGender === 'male' ? 'selected' : '' }}>Masculino</option>
+            <option value="F" {{ oldGender === 'female' ? 'selected' : '' }}>Femenino</option>
+            <option value="Other" {{ oldGender === 'other' ? 'selected' : '' }}>Otro</option>
+          </select>
+
+          <button type="submit">Registrar Perfil</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const phoneInput = document.getElementById('phone')
+    const phoneMsg = document.getElementById('phone-msg')
+
+    phoneInput.addEventListener('input', () => {
+      const value = phoneInput.value
+      const valid = /^\d{10}$/.test(value)
+
+      if (!value) {
+        phoneMsg.textContent = ''
+        phoneInput.style.borderColor = ''
+        return
+      }
+
+      if (!valid) {
+        phoneMsg.textContent = 'El número debe contener exactamente 10 dígitos numéricos.'
+        phoneInput.style.borderColor = 'red'
+      } else {
+        phoneMsg.textContent = ''
+        phoneInput.style.borderColor = 'green'
+      }
+    })
+  </script>
+</body>
+</html>
