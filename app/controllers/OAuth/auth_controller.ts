@@ -68,7 +68,7 @@ export default class AuthController {
     }
 
     // Crear usuario
-    const user = await User.create({ email, password, roleId: 1 })
+    const user = await User.create({ email, password, roleId: 2 })
     
 
     return view.render('oauth/registerprofile', {
