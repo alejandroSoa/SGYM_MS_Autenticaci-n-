@@ -109,7 +109,7 @@ const refreshTokenEncoded = encodeURIComponent(JSON.stringify({
   expiresAt: refreshToken.expiresAt,
   abilities: refreshToken.abilities,
 }))
-redirectUrl.searchParams.set('refresh_token', refreshTokenEncoded)
+
     redirectUrl.searchParams.set('access_token', jwt.token)
 
     
@@ -283,7 +283,7 @@ const refreshTokenEncoded = encodeURIComponent(JSON.stringify({
   expiresAt: refreshToken.expiresAt,
   abilities: refreshToken.abilities,
 }))
-redirectUrl.searchParams.set('refresh_token', refreshTokenEncoded)
+
 
 
     redirectUrl.searchParams.set('access_token', newToken.token)
@@ -398,7 +398,7 @@ const refreshTokenEncoded = encodeURIComponent(JSON.stringify({
   expiresAt: refreshToken.expiresAt,
   abilities: refreshToken.abilities,
 }))
-redirectUrl.searchParams.set('refresh_token', refreshTokenEncoded)
+
 
     redirectUrl.searchParams.set('access_token', token.token)
     return response.redirect(redirectUrl.toString())
