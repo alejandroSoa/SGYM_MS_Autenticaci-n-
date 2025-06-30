@@ -109,10 +109,10 @@ const refreshTokenEncoded = encodeURIComponent(JSON.stringify({
   expiresAt: refreshToken.expiresAt,
   abilities: refreshToken.abilities,
 }))
-
+redirectUrl.searchParams.set('refresh_token', refreshTokenEncoded)
     redirectUrl.searchParams.set('access_token', jwt.token)
 
-    redirectUrl.searchParams.set('refresh_token', refreshTokenEncoded)
+    
     
     return response.redirect(redirectUrl.toString())
   }
@@ -264,7 +264,7 @@ public async forgotPassword({ request, view }: HttpContext) {
 
     user.password = password
     await user.save()
-
+  const refreshToken = await User.refreshTokens.create(user)
     const newToken = await auth.use('jwt').generate(user)
 
     let redirectUrl: URL
@@ -273,6 +273,18 @@ public async forgotPassword({ request, view }: HttpContext) {
     } catch {
       return response.redirect('/oauth/login')
     }
+        // Serializar el refreshToken completo como JSON
+const refreshTokenEncoded = encodeURIComponent(JSON.stringify({
+  identifier: refreshToken.identifier,
+  tokenableId: refreshToken.tokenableId,
+  hash: refreshToken.hash,
+  createdAt: refreshToken.createdAt,
+  updatedAt: refreshToken.updatedAt,
+  expiresAt: refreshToken.expiresAt,
+  abilities: refreshToken.abilities,
+}))
+redirectUrl.searchParams.set('refresh_token', refreshTokenEncoded)
+
 
     redirectUrl.searchParams.set('access_token', newToken.token)
     return response.redirect(redirectUrl.toString())
@@ -369,13 +381,24 @@ if (existingProfile) {
     }
 
     const token = await auth.use('jwt').generate(user)
-
+  const refreshToken = await User.refreshTokens.create(user)
     let redirectUrl: URL
     try {
       redirectUrl = new URL(redirectUri)
     } catch {
       return response.redirect('/oauth/login')
     }
+        // Serializar el refreshToken completo como JSON
+const refreshTokenEncoded = encodeURIComponent(JSON.stringify({
+  identifier: refreshToken.identifier,
+  tokenableId: refreshToken.tokenableId,
+  hash: refreshToken.hash,
+  createdAt: refreshToken.createdAt,
+  updatedAt: refreshToken.updatedAt,
+  expiresAt: refreshToken.expiresAt,
+  abilities: refreshToken.abilities,
+}))
+redirectUrl.searchParams.set('refresh_token', refreshTokenEncoded)
 
     redirectUrl.searchParams.set('access_token', token.token)
     return response.redirect(redirectUrl.toString())
