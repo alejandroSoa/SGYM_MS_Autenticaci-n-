@@ -99,9 +99,20 @@ export default class AuthController {
     } catch {
       return response.redirect('/oauth/login')
     }
+    // Serializar el refreshToken completo como JSON
+const refreshTokenEncoded = encodeURIComponent(JSON.stringify({
+  identifier: refreshToken.identifier,
+  tokenableId: refreshToken.tokenableId,
+  hash: refreshToken.hash,
+  createdAt: refreshToken.createdAt,
+  updatedAt: refreshToken.updatedAt,
+  expiresAt: refreshToken.expiresAt,
+  abilities: refreshToken.abilities,
+}))
 
     redirectUrl.searchParams.set('access_token', jwt.token)
-    console.log(refreshToken)
+
+    redirectUrl.searchParams.set('refresh_token', refreshTokenEncoded)
     
     return response.redirect(redirectUrl.toString())
   }
