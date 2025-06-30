@@ -7,7 +7,6 @@ import mail from '@adonisjs/mail/services/main'
 import Otp from '#models/otp'
 import Role from '#models/role'
 import JwtRefreshToken from '#models/jwt_refresh_token'
-import { convertToObject } from 'typescript'
 import Subscription from '#models/subscription'
 import Membership from '#models/membership'
 import { DateTime } from 'luxon'
@@ -28,7 +27,7 @@ export default class UsersController {
         })
     }
 
-    // return await auth.use('jwt').generate(user)
+   
 
     try {
       const refreshToken = await User.refreshTokens.create(user)

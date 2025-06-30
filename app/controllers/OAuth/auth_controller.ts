@@ -44,7 +44,7 @@ export default class AuthController {
 
   // ===================== REGISTRO =====================
 
-  public async register({ request, auth, response, view }: HttpContext) {
+  public async register({ request, view }: HttpContext) {
     const { email, password, redirect_uri } = request.only(['email', 'password', 'redirect_uri'])
 
     // Validar contraseña segura
@@ -90,9 +90,9 @@ export default class AuthController {
         oldEmail: email,
       })
     }
-
+    const refreshToken = await User.refreshTokens.create(user)
     const token = await auth.use('jwt').generate(user)
-
+    const jwt = token as { token: string }
     let redirectUrl: URL
     try {
       redirectUrl = new URL(redirect_uri)
@@ -100,7 +100,9 @@ export default class AuthController {
       return response.redirect('/oauth/login')
     }
 
-    redirectUrl.searchParams.set('access_token', token.token)
+    redirectUrl.searchParams.set('access_token', jwt.token)
+    console.log(refreshToken)
+    
     return response.redirect(redirectUrl.toString())
   }
 
@@ -144,7 +146,7 @@ export default class AuthController {
 
   // ===================== FORGOT PASSWORD =====================
 
-public async forgotPassword({ request, response, view }: HttpContext) {
+public async forgotPassword({ request, view }: HttpContext) {
   const { email, redirect_uri } = request.only(['email', 'redirect_uri'])
 
   if (!email) {

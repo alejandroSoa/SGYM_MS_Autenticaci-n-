@@ -178,7 +178,7 @@
         <h1>Bienvenido de vuelta</h1>
         <div class="auth-tabs">
           <a href="#" class="active">Iniciar Sesión</a>
-          <a href="/oauth/register">Registrarse</a>
+          <a href="/oauth/register?redirect_uri={{ redirectUri }}">Registrarse</a>
         </div>
       </div>
 
@@ -189,7 +189,7 @@
   </div>
 @endif
 
-        <form method="POST" action="/oauth/login" class="auth-form">
+        <form method="POST" action="/oauth/login?redirect_uri={{ redirectUri }}" class="auth-form">
          <input
   type="email"
   name="email"
