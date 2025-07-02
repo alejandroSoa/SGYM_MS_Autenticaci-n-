@@ -499,4 +499,56 @@ export default class UsersController {
       msg: 'Código QR eliminado correctamente.',
     })
   }
+
+ public async accesApp({ response, auth, request }: HttpContext) {
+  // Autenticar y obtener al usuario del token
+  await auth.use('jwt').authenticate()
+  const tokenUser = auth.user!
+
+  // Buscar al usuario directamente desde la BD por si hubo cambios
+  const user = await User.find(tokenUser.id)
+
+  // Si el usuario no existe (fue eliminado o desactivado)
+  if (!user) {
+    return response.unauthorized({
+      status: 'error',
+      data: {},
+      msg: 'Usuario no encontrado en la base de datos.',
+    })
+  }
+
+  // Preload del rol actualizado
+  await user.preload('role')
+
+  // Obtener el valor de la app desde query params o default a AppWeb
+  const app = request.qs().app || 'AppWeb'
+
+  // Roles con acceso solo a AppDesktop
+  if ([1, 2, 3, 4, 6].includes(user.role.id) && app === 'AppDesktop') {
+    return response.ok({
+      status: 'success',
+      data: {},
+      msg: 'Acceso concedido a AppDesktop.',
+    })
+  }
+
+  // Rol 5 (cliente) tiene acceso solo a AppWeb o AppMovil
+  if (user.role.id === 5 && (app === 'AppWeb' || app === 'AppMovil')) {
+    return response.ok({
+      status: 'success',
+      data: {},
+      msg: 'Acceso concedido a AppMovil o AppWeb.',
+    })
+  }
+
+  // Si ninguna condición se cumple, denegar acceso
+  return response.unauthorized({
+    status: 'error',
+    data: {},
+    msg: 'Acceso denegado.',
+  })
+}
+
+
+
 }

@@ -1,5 +1,7 @@
 
-import { BaseModel, column } from '@adonisjs/lucid/orm'
+import { BaseModel, column, manyToMany } from '@adonisjs/lucid/orm'
+import Permission from './permission.js'
+import type { ManyToMany } from '@adonisjs/lucid/types/relations'
 
 export default class Role extends BaseModel {
   static table = 'role'
@@ -12,4 +14,10 @@ export default class Role extends BaseModel {
 
   @column()
   declare description: string
+
+    @manyToMany(() => Permission, {
+  pivotTable: 'role_permissions',
+})
+public permissions!: ManyToMany<typeof Permission>
+
 }

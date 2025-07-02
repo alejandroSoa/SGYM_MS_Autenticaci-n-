@@ -49,3 +49,5 @@ router.group(() => {
 
 
 router.post('/access/qr', [UsersController, 'accessByQrI'])
+
+router.get('/access/app', [UsersController, 'accesApp']).use(middleware.auth())
