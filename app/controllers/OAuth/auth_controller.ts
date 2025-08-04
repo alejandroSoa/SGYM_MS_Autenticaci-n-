@@ -6,6 +6,7 @@ import JwtRefreshToken from '#models/jwt_refresh_token'
 import mail from '@adonisjs/mail/services/main'
 import Profile from '#models/profile'
 import { DateTime } from 'luxon'
+import { v4 as uuidv4 } from 'uuid'
 
 
 export default class AuthController {
@@ -68,7 +69,8 @@ export default class AuthController {
     }
 
     // Crear usuario
-    const user = await User.create({ email, password, roleId: 5 })
+    const uuid = uuidv4()
+    const user = await User.create({ email, password, roleId: 5 ,uuid:uuid})
     
 
     return view.render('oauth/registerprofile', {

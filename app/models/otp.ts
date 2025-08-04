@@ -1,6 +1,7 @@
 import { BaseModel, column, beforeSave } from '@adonisjs/lucid/orm'
 
 export default class Otp extends BaseModel {
+  static table = 'otps'
   @column({ isPrimary: true })
   declare id: number
 

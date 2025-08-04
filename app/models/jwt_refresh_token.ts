@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 
 export default class JwtRefreshToken extends BaseModel {
+   static table = 'jwt_refresh_tokens'
   @column({ isPrimary: true })
   declare id: number
 

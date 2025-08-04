@@ -158,7 +158,19 @@ export default class UsersController {
   }
 }
 
+  public async getrefresh({auth, response}: HttpContext) {
+    const user = await auth.authenticate()
+   
+const refreshToken = await User.refreshTokens.create(user)
 
+    return response.ok({
+      status: 'success',
+      data: {
+        refreshToken: refreshToken,
+      },
+      msg: 'Token refrescado correctamente'
+    })
+  }
 
 
 

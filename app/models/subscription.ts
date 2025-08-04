@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 
 export default class Subscription extends BaseModel {
+   static table = 'subscription'
   @column({ isPrimary: true })
   declare id: number
 
