@@ -28,6 +28,7 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @column() declare email: string
   @column() declare password: string
   @column() declare isActive: boolean
+  @column() declare uuid: string
   @column.dateTime({ autoCreate: true }) declare lastAccess: DateTime
 
   static refreshTokens = DbAccessTokensProvider.forModel(User, {
