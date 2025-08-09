@@ -197,50 +197,64 @@ export default class StationsController {
 
     // 10 - Guardar nueva estación internamente
     public async createStation({ request, response }: HttpContext) {
-    const { hardwareId, type } = request.only(['hardwareId', 'type'])
+        const {
+        station_id,
+        hardware_id,
+        type,
+        location,
+        firmware_version,
+        status,
+        } = request.only([
+        'station_id',
+        'hardware_id',
+        'type',
+        'location',
+        'firmware_version',
+        'status',
+        ])
 
-    if (!hardwareId || !type) {
+        // Validaciones básicas
+        if (!station_id || !hardware_id || !type) {
         return response.badRequest({
-        status: 'error',
-        msg: 'hardwareId y type son requeridos',
+            status: 'error',
+            msg: 'station_id, hardware_id y type son requeridos',
         })
-    }
+        }
 
-    if (!['entrada', 'salida'].includes(type)) {
+        if (!['entrada', 'salida'].includes(type)) {
         return response.badRequest({
-        status: 'error',
-        msg: 'El tipo de estación debe ser "entrada" o "salida"',
+            status: 'error',
+            msg: 'El tipo de estación debe ser "entrada" o "salida"',
         })
-    }
+        }
 
-    const stationId = `ST-${Date.now()}`
-    const location = 'Default Location'
-    const firmwareVersion = '1.0.0'
-    const status = 'online'
-    const userIn = null
+        const loc = location ?? 'SGym License Place'
+        const fwVersion = firmware_version ?? '1.0.777'
+        const stat = status ?? 'offline'
+        const userIn = null
 
-    let stationToken = randomBytes(16).toString('hex')
-    while (await Station.findBy('stationToken', stationToken)) {
+        let stationToken = randomBytes(16).toString('hex')
+        while (await Station.findBy('stationToken', stationToken)) {
         stationToken = randomBytes(16).toString('hex')
-    }
+        }
 
-    const station = new Station()
-    station.stationId = stationId
-    station.stationToken = stationToken
-    station.type = type
-    station.location = location
-    station.firmwareVersion = firmwareVersion
-    station.status = status
-    station.userIn = userIn
-    station.hardwareId = hardwareId
+        const station = new Station()
+        station.stationId = station_id
+        station.stationToken = stationToken
+        station.type = type
+        station.location = loc
+        station.firmwareVersion = fwVersion
+        station.status = stat
+        station.userIn = userIn
+        station.hardwareId = hardware_id
 
-    await station.save()
+        await station.save()
 
-    return response.created({
+        return response.created({
         status: 'success',
         data: { stationToken },
         msg: 'Nueva estación creada correctamente',
-    })
+        })
     }
 
       // 11 - Verificar estado de estación por stationToken
