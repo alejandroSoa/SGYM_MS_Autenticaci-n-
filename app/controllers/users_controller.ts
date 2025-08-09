@@ -1,6 +1,7 @@
 import { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
 import Station from '#models/station'
+import Profile from '#models/profile'
 
 import UserQrCode from '#models/user_qr_code'
 import QRCode from 'qrcode'
@@ -11,7 +12,6 @@ import Role from '#models/role'
 import JwtRefreshToken from '#models/jwt_refresh_token'
 import Subscription from '#models/subscription'
 import Membership from '#models/membership'
-import { DateTime } from 'luxon'
 
 
 export default class UsersController {
@@ -69,7 +69,6 @@ export default class UsersController {
           msg: 'Estación no encontrada o inválida.',
         })
       }
-      console.log('[INFO] Estación encontrada:', station)
 
       // 2. Buscar QR y usuario
       const userQrCode = await UserQrCode.findBy('qrToken', qr_token)
@@ -96,6 +95,10 @@ export default class UsersController {
           msg: 'Usuario inactivo. Contacte a recepción.',
         })
       }
+
+      const profile = await Profile.query()
+        .where('userId', user.id)
+        .first()
 
       // 3. Verificar suscripción activa
       const subscription = await Subscription.query()
@@ -149,10 +152,22 @@ export default class UsersController {
       station.status = 'standby'
       await station.save()
 
+      const userData = {
+        id: user.id,
+        email: user.email,
+        full_name: profile?.fullName || 'Usuario',
+        phone: profile?.phone || null,
+        photo_url: profile?.photoUrl || null,
+        subscription_status: subscription.status,
+        valid_until: subscription.endDate.toISODate(),
+        qr_status: userQrCode.status
+      }
+
       // 7. Responder con estado de la estación (sin datos del usuario todavía)
       return response.status(200).send({
         status: 'processing',
         data: {
+          user: userData,
           station_status: station.status,
           station_type: station.type,
           user_assigned: true,
