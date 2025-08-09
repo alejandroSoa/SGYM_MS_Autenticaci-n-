@@ -149,21 +149,16 @@ export default class UsersController {
       station.status = 'standby'
       await station.save()
 
-      // 7. Responder éxito con info usuario (sin cambiar el estado QR)
-      const accessTime = DateTime.now()
-
-      return response.status(102).send({
-        status: 'Procesing',
+      // 7. Responder con estado de la estación (sin datos del usuario todavía)
+      return response.status(200).send({
+        status: 'processing',
         data: {
-          user_id: user.id,
-          email: user.email,
-          subscription_status: subscription.status,
-          membership: membership.name,
-          valid_until: subscription.endDate.toISODate(),
-          access_time: accessTime.toISO(),
           station_status: station.status,
+          station_type: station.type,
+          user_assigned: true,
+          next_step: 'verify_station_status' 
         },
-        msg: `Espere un momento. ${user.email}.`,
+        msg: `Estación en proceso de verificación. Espere confirmación.`,
       })
     } catch (error) {
       console.error('[ERROR] Excepción en accessByQrI:', error)
