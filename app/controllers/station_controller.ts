@@ -175,16 +175,17 @@ export default class StationsController {
     })
     }
 
-
-
     // 9 - Obtener configuraciones necesarias para nueva estación
     public async getStationConfigurations({ response }: HttpContext) {
-    // Aquí puedes devolver configuraciones predeterminadas o datos que la estación necesita para inicializarse
+    // Generar stationId como un entero con formato YYYYMMDD
+    const randomStationId = Math.floor(Math.random() * 9e14 + 1e14).toString()
+
     const configurations = {
-        firmwareVersion: '1.0.0',
+        stationId: randomStationId,
+        hardwareId: '00:1A:2B:3C:4D:5E',
+        firmwareVersion: '1.1.0',
         supportedTypes: ['entrada', 'salida'],
         allowedStatuses: ['online', 'offline', 'standby'],
-        // otras configuraciones necesarias...
     }
 
     return response.ok({
