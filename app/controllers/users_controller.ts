@@ -12,7 +12,7 @@ import Role from '#models/role'
 import JwtRefreshToken from '#models/jwt_refresh_token'
 import Subscription from '#models/subscription'
 import Membership from '#models/membership'
-
+//aaa
 
 export default class UsersController {
   public async accessByQr({ request, auth, response }: HttpContext) {

@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+//aaa
 
 export default class Station extends BaseModel {
   static table = 'stations'
