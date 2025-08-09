@@ -198,14 +198,12 @@ export default class StationsController {
     // 10 - Guardar nueva estación internamente
     public async createStation({ request, response }: HttpContext) {
         const {
-        station_id,
         hardware_id,
         type,
         location,
         firmware_version,
         status,
         } = request.only([
-        'station_id',
         'hardware_id',
         'type',
         'location',
@@ -214,10 +212,10 @@ export default class StationsController {
         ])
 
         // Validaciones básicas
-        if (!station_id || !hardware_id || !type) {
+        if (!hardware_id || !type) {
         return response.badRequest({
             status: 'error',
-            msg: 'station_id, hardware_id y type son requeridos',
+            msg: 'hardware_id y type son requeridos',
         })
         }
 
@@ -228,18 +226,29 @@ export default class StationsController {
         })
         }
 
-        const loc = location ?? 'SGym License Place'
-        const fwVersion = firmware_version ?? '1.0.777'
+        const loc = location ?? 'Default Location'
+        const fwVersion = firmware_version ?? '1.0.0'
         const stat = status ?? 'offline'
         const userIn = null
 
+        // Generar stationId como número random de 15 dígitos (string)
+        const generateStationId = () => {
+        let id = ''
+        while (id.length < 15) {
+            id += Math.floor(Math.random() * 10).toString()
+        }
+        return id
+        }
+        const stationId = generateStationId()
+
+        // Generar token único para la estación
         let stationToken = randomBytes(16).toString('hex')
         while (await Station.findBy('stationToken', stationToken)) {
         stationToken = randomBytes(16).toString('hex')
         }
 
         const station = new Station()
-        station.stationId = station_id
+        station.stationId = stationId
         station.stationToken = stationToken
         station.type = type
         station.location = loc
@@ -252,7 +261,7 @@ export default class StationsController {
 
         return response.created({
         status: 'success',
-        data: { stationToken },
+        data: { stationToken, stationId },
         msg: 'Nueva estación creada correctamente',
         })
     }
