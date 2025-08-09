@@ -1,5 +1,7 @@
 import { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
+import Station from '#models/station'
+
 import UserQrCode from '#models/user_qr_code'
 import QRCode from 'qrcode'
 import { v4 as uuidv4 } from 'uuid'
@@ -46,117 +48,132 @@ export default class UsersController {
     }
   }
 
-
   public async accessByQrI({ request, response }: HttpContext) {
-  try {
-    const { qr_token } = request.only(['qr_token'])
-    console.log('[INFO] QR Token recibido:', qr_token)
+    try {
+      const { token_estacion, qr_token } = request.only(['token_estacion', 'qr_token'])
 
-    if (!qr_token) {
-      console.warn('[WARN] Token QR no proporcionado')
-      return response.badRequest({
-        status: 'error',
-        data: {},
-        msg: 'Token QR requerido.',
-      })
-    }
+      if (!token_estacion || !qr_token) {
+        return response.badRequest({
+          status: 'error',
+          data: {},
+          msg: 'Se requieren token_estacion y qr_token.',
+        })
+      }
 
-    const userQrCode = await UserQrCode.findBy('qrToken', qr_token)
-    console.log('[INFO] Resultado de UserQrCode:', userQrCode)
+      // 1. Validar estación
+      const station = await Station.findBy('stationToken', token_estacion)
+      if (!station) {
+        return response.status(404).json({
+          status: 'error',
+          data: {},
+          msg: 'Estación no encontrada o inválida.',
+        })
+      }
+      console.log('[INFO] Estación encontrada:', station)
 
-    if (!userQrCode) {
-      console.warn('[WARN] QR inválido o no registrado')
-      return response.status(404).json({
-        status: 'error',
-        data: {},
-        msg: 'QR inválido o no registrado.',
-      })
-    }
+      // 2. Buscar QR y usuario
+      const userQrCode = await UserQrCode.findBy('qrToken', qr_token)
+      if (!userQrCode) {
+        return response.status(404).json({
+          status: 'error',
+          data: {},
+          msg: 'QR inválido o no registrado.',
+        })
+      }
+      
+      const user = await User.find(userQrCode.userId)
+      if (!user) {
+        return response.status(404).json({
+          status: 'error',
+          data: {},
+          msg: 'Usuario no encontrado.',
+        })
+      }
+      if (!user.isActive) {
+        return response.status(403).json({
+          status: 'error',
+          data: { user_id: user.id },
+          msg: 'Usuario inactivo. Contacte a recepción.',
+        })
+      }
 
-    const user = await User.find(userQrCode.userId)
-    console.log('[INFO] Usuario encontrado:', user)
-
-    if (!user) {
-      console.warn('[WARN] Usuario no encontrado con ID:', userQrCode.userId)
-      return response.status(404).json({
-        status: 'error',
-        data: {},
-        msg: 'Usuario no encontrado.',
-      })
-    }
-
-    if (!user.isActive) {
-      console.warn('[WARN] Usuario inactivo:', user.id)
-      return response.status(403).json({
-        status: 'error',
-        data: {
-          user_id: user.id,
-        },
-        msg: 'Usuario inactivo. Contacte a recepción.',
-      })
-    }
-
-    const subscription = await Subscription.query()
-      .where('user_id', user.id)
-      .andWhere('status', 'active')
-      .first()
-
-    console.log('[INFO] Suscripción activa encontrada:', subscription)
-
-    if (!subscription) {
-      const expiredSubscription = await Subscription.query()
+      // 3. Verificar suscripción activa
+      const subscription = await Subscription.query()
         .where('user_id', user.id)
-        .orderBy('end_date', 'desc')
+        .andWhere('status', 'active')
         .first()
+      if (!subscription) {
+        const lastSub = await Subscription.query()
+          .where('user_id', user.id)
+          .orderBy('end_date', 'desc')
+          .first()
+        return response.status(403).json({
+          status: 'error',
+          data: { user_id: user.id, subscription_status: lastSub?.status || 'none' },
+          msg: 'Suscripción expirada. No se permite el acceso.',
+        })
+      }
 
-      console.warn('[WARN] No hay suscripción activa. Última suscripción encontrada:', expiredSubscription)
+      // 4. Obtener membresía
+      const membership = await Membership.find(subscription.membershipId)
+      if (!membership) {
+        return response.status(500).json({
+          status: 'error',
+          data: {},
+          msg: 'Error inesperado: membresía no encontrada.',
+        })
+      }
 
-      return response.status(403).json({
-        status: 'error',
+      // 5. Validar estado QR según tipo estación, pero NO modificarlo aquí
+      const stationType = station.type.toLowerCase()
+      const qrState = userQrCode.status
+
+      if (stationType === 'entrada' && qrState !== 'GENERADO') {
+        return response.status(403).json({
+          status: 'error',
+          data: {},
+          msg: 'Estado del QR no válido para entrada.',
+        })
+      }
+
+      if (stationType === 'salida' && qrState !== 'ENTRADA_OK') {
+        return response.status(403).json({
+          status: 'error',
+          data: {},
+          msg: 'Estado del QR no válido para salida.',
+        })
+      }
+
+      // 6. Asignar usuario a estación y poner en standby
+      station.userIn = user.id
+      station.status = 'standby'
+      await station.save()
+
+      // 7. Responder éxito con info usuario (sin cambiar el estado QR)
+      const accessTime = DateTime.now()
+
+      return response.status(102).send({
+        status: 'Procesing',
         data: {
           user_id: user.id,
-          subscription_status: expiredSubscription?.status || 'none',
+          email: user.email,
+          subscription_status: subscription.status,
+          membership: membership.name,
+          valid_until: subscription.endDate.toISODate(),
+          access_time: accessTime.toISO(),
+          station_status: station.status,
         },
-        msg: 'Suscripción expirada. No se permite el acceso.',
+        msg: `Espere un momento. ${user.email}.`,
       })
-    }
-
-    const membership = await Membership.find(subscription.membershipId)
-    console.log('[INFO] Membresía encontrada:', membership)
-
-    if (!membership) {
-      console.error('[ERROR] Membresía no encontrada con ID:', subscription.membershipId)
+    } catch (error) {
+      console.error('[ERROR] Excepción en accessByQrI:', error)
       return response.status(500).json({
         status: 'error',
         data: {},
         msg: 'Error inesperado del servidor',
       })
     }
-
-    const accessTime = DateTime.now()
-    console.log('[INFO] Acceso autorizado en:', accessTime.toISO())
-
-    return response.ok({
-      status: 'success',
-      data: {
-        user_id: user.id,
-        email: user.email,
-        subscription_status: subscription.status,
-        membership: membership.name,
-        valid_until: subscription.endDate.toISODate(),
-        access_time: accessTime.toISO(),
-      },
-      msg: `Acceso permitido. Bienvenido ${user.email}.`,
-    })
-  } catch (error) {
-    console.error('[ERROR] Excepción atrapada en accessByQrI:', error)
-    return response.status(500).json({
-      status: 'error',
-      data: {},
-      msg: 'Error inesperado del servidor',
-    })
   }
-}
 
   public async getrefresh({auth, response}: HttpContext) {
     const user = await auth.authenticate()
@@ -375,8 +392,79 @@ const refreshToken = await User.refreshTokens.create(user)
         msg: 'Contraseña actualizada correctamente.',
     })
   }
+  
+    // Servicio 3 - Actualizar estado de QR
+    public async updateQrStatus({ request, response }: HttpContext) {
+      const { userId, newStatus } = request.only(['userId', 'newStatus'])
+  
+      const qrRecord = await UserQrCode.findBy('userId', userId)
+      if (!qrRecord) {
+        return response.notFound({
+          status: 'error',
+          data: {},
+          msg: 'QR no encontrado.'
+        })
+      }
+  
+      qrRecord.status = newStatus
+      await qrRecord.save()
+  
+      return response.ok({
+        status: 'success',
+        data: {
+          user_id: userId,
+          new_status: newStatus
+        },
+        msg: 'Estado de QR actualizado correctamente.'
+      })
+    }
+  
+    // Servicio 7 - Eliminar QR
+    public async deleteQr({ params, response, auth }: HttpContext) {
+      const user = await User.find(params.id)
+      const requester = await auth.authenticate()
+  
+      if (!user) {
+        return response.notFound({
+          status: 'error',
+          data: {},
+          msg: 'Usuario no encontrado',
+        })
+      }
+  
+      const role = await Role.find(requester.id)
+  
+      if (!['admin', 'receptionist'].includes(role?.name ?? '')) {
+        return response.forbidden({
+          status: 'error',
+          data: {},
+          msg: 'No tiene permisos para realizar esta acción.',
+        })
+      }
+  
+      const qrUser = await UserQrCode.findBy('userId', params.id)
+  
+      if (!qrUser) {
+        return response.notFound({
+          status: 'error',
+          data: {},
+          msg: 'Código QR no encontrado para el usuario.',
+        })
+      }
+  
+      await qrUser.delete()
+  
+      return response.ok({
+        status: 'success',
+        data: {
+          user_id: qrUser.userId,
+        },
+        msg: 'Código QR eliminado correctamente.',
+      })
+    }
 
-  public async generateQr({ params, response, auth }: HttpContext) {
+  // Servicio 8 - Generar o devolver QR existente
+  public async generateOrGetQr({ params, response, auth }: HttpContext) {
     const userId = Number(params.id)
     const requester = await auth.authenticate()
 
@@ -402,113 +490,51 @@ const refreshToken = await User.refreshTokens.create(user)
       })
     }
 
-    const token = uuidv4()
+    let qrRecord = await UserQrCode.findBy('userId', user.id)
 
-    const qrData = await QRCode.toDataURL(token)
+    if (!qrRecord) {
+      // No tiene QR → generar nuevo en estado GENERADO
+      const token = uuidv4()
+      const qrData = await QRCode.toDataURL(token)
 
-    const qr = await UserQrCode.firstOrNew({ userId: user.id })
-    qr.qrToken = token
-    await qr.save()
+      qrRecord = new UserQrCode()
+      qrRecord.userId = user.id
+      qrRecord.qrToken = token
+      qrRecord.status = 'GENERADO'
+      await qrRecord.save()
 
-    return response.created({
-      status: 'success',
-      data: {
-        user_id: user.id,
-        qr_token: qr.qrToken,
-        qr_image_base64: qrData
-      },
-      msg: 'Código QR generado exitosamente.'
-    })
-  }
-
-  public async getQr({ params, response, auth }: HttpContext) {
-    const userId = Number(params.id)
-    const requester = await auth.authenticate()
-
-    const user = await User.find(userId)
-    if (!user) {
-      return response.notFound({
-        status: 'error',
-        data: {},
-        msg: 'Usuario no encontrado.',
+      return response.created({
+        status: 'success',
+        data: {
+          user_id: user.id,
+          qr_token: qrRecord.qrToken,
+          status: qrRecord.status,
+          qr_image_base64: qrData
+        },
+        msg: 'Código QR generado exitosamente.'
       })
     }
 
-    const role = await Role.find(requester.id)
-
-    if (
-      !['admin', 'receptionist'].includes(role?.name ?? '') &&
-      requester.id !== user.id
-    ) {
-      return response.forbidden({
-        status: 'error',
-        data: {},
-        msg: 'No tiene permisos para realizar esta acción.',
+    // Ya existe QR → devolverlo según estado permitido
+    if (qrRecord.status === 'GENERADO' || qrRecord.status === 'ENTRADA_OK') {
+      const qrData = await QRCode.toDataURL(qrRecord.qrToken)
+      return response.ok({
+        status: 'success',
+        data: {
+          user_id: user.id,
+          qr_token: qrRecord.qrToken,
+          status: qrRecord.status,
+          qr_image_base64: qrData
+        },
+        msg: 'Código QR existente devuelto.'
       })
     }
 
-    const qrRecord = await UserQrCode.findBy('userId', userId)
-    if (!qrRecord?.qrToken) {
-      return response.notFound({
-        status: 'error',
-        data: {},
-        msg: 'Código QR no encontrado para el usuario.',
-      })
-    }
-
-    const qrData = await QRCode.toDataURL(qrRecord.qrToken)
-
-    return response.ok({
-      status: 'success',
-      data: {
-        user_id: userId,
-        qr_token: qrRecord.qrToken,
-        qr_image_base64: qrData,
-      },
-      msg: 'Código QR obtenido correctamente.',
-    })
-  }
-
-  public async deleteQr({ params, response, auth }: HttpContext) {
-    const user = await User.find(params.id)
-    const requester = await auth.authenticate()
-
-    if(!user) {
-        return response.notFound({
-            status: 'error',
-            data: {},
-            msg: 'Usuario no encontrado',
-        })
-    }
-
-    const role = await Role.find(requester.id)
-
-    if (!['admin', 'receptionist'].includes(role?.name ?? '')) {
-      return response.forbidden({
-        status: 'error',
-        data: {},
-        msg: 'No tiene permisos para realizar esta acción.',
-      })
-    }
-
-    const qrUser = await UserQrCode.findBy('userId', params.id)
-
-    if(!qrUser) {
-      return response.notFound({
+    // Si está en otro estado, no se puede reutilizar
+    return response.badRequest({
       status: 'error',
       data: {},
-      msg: 'Código QR no encontrado para el usuario.',
-      })
-    }
-
-    await qrUser.delete()
-
-    return response.ok({
-      status: 'success',
-      data: {
-          user_id: qrUser.userId,
-      },
-      msg: 'Código QR eliminado correctamente.',
+      msg: `El QR que se utilizo esta en uso, por favor use uno diferente.`
     })
   }
 

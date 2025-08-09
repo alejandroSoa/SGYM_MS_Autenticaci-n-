@@ -13,6 +13,9 @@ export default class UserQrCode extends BaseModel {
   @column()
   declare qrToken: string
 
+  @column()
+  declare status: 'GENERADO' | 'ENTRADA_OK' | 'SALIDA_OK' 
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 
