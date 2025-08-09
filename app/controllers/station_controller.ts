@@ -2,7 +2,7 @@ import Station from '#models/station'
 import { HttpContext } from '@adonisjs/core/http'
 import UserQrCode from '#models/user_qr_code' 
 import { randomBytes } from 'crypto'
-
+//AA
 export default class StationsController {
   // 1 - Asignar usuario a estación (Guardar ID en la estación)
   public async assignUserToStation({ request, response }: HttpContext) {
