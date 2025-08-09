@@ -56,14 +56,11 @@ router.group(() => {
   router.post('/users/:id/qr', [UsersController, 'generateOrGetQr']).use(middleware.auth())
 
 
-
-
-
   router.get('/login', [OauthController, 'showLogin']).as('oauth.login')
   router.get('/register', [OauthController, 'showRegister']).as('oauth.register')
   router.get('/forgotpassword', [OauthController, 'showForgotPassword']).as('oauth.forgotpassword')
-   router.get('/resetpassword', [OauthController, 'showResetPassword']).as('oauth.resetpassword')
-    router.get('/registerprofile/:user_id', [OauthController, 'showRegisterProfile']).as('oauth.registerprofile')
+  router.get('/resetpassword', [OauthController, 'showResetPassword']).as('oauth.resetpassword')
+  router.get('/registerprofile/:user_id', [OauthController, 'showRegisterProfile']).as('oauth.registerprofile')
 
   router.post('/login', [OauthController, 'login']).as('oauth.login.submit')
   router.post('/register', [OauthController, 'register']).as('oauth.register.submit')
