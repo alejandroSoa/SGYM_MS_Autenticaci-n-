@@ -32,6 +32,9 @@ router.put('/auth/change-password', [UsersController, 'changePassword']).use(mid
 
 
 router.group(() => {
+  router.get('/stations', [StationsController, 'getAllStations']).use(middleware.auth())
+  router.delete('/station', [StationsController, 'deleteStationByToken']).use(middleware.auth())
+
   // Servicio 1 - Asignar usuario a estación (Guardar ID en la estación)
   router.post('/station/assign-user', [StationsController, 'assignUserToStation']).use(middleware.auth())
 

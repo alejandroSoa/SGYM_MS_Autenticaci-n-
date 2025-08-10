@@ -4,6 +4,43 @@ import UserQrCode from '#models/user_qr_code'
 import { randomBytes } from 'crypto'
 
 export default class StationsController {
+    public async getAllStations({ response }: HttpContext) {
+    const stations = await Station.all()
+
+    return response.ok({
+        status: 'success',
+        data: stations,
+        msg: 'Lista de todas las estaciones obtenida correctamente',
+    })
+    }
+
+    public async deleteStationByToken({ request, response }: HttpContext) {
+    const { stationToken } = request.only(['stationToken'])
+
+    if (!stationToken) {
+        return response.badRequest({
+        status: 'error',
+        msg: 'stationToken es requerido',
+        })
+    }
+
+    const station = await Station.findBy('stationToken', stationToken)
+
+    if (!station) {
+        return response.notFound({
+        status: 'error',
+        msg: 'Estación no encontrada',
+        })
+    }
+
+    await station.delete()
+
+    return response.ok({
+        status: 'success',
+        msg: 'Estación eliminada correctamente',
+    })
+    }
+
   // 1 - Asignar usuario a estación (Guardar ID en la estación)
   public async assignUserToStation({ request, response }: HttpContext) {
     const { stationToken, userId } = request.only(['stationToken', 'userId'])
@@ -120,10 +157,10 @@ export default class StationsController {
 
     // 6 - Liberar estación de standby (confirma usuario, libera estación)
     public async releaseStationStandby({ request, response }: HttpContext) {
-    const { stationToken } = request.only(['stationToken'])
+    const { stationToken, stationAccess } = request.only(['stationToken', 'stationAccess'])
 
-    if (!stationToken) {
-        return response.badRequest({ status: 'error', msg: 'stationToken es requerido' })
+    if (!stationToken || stationAccess === undefined) {
+        return response.badRequest({ status: 'error', msg: 'stationToken y stationAccess son requeridos' })
     }
 
     const station = await Station.findBy('stationToken', stationToken)
@@ -134,6 +171,18 @@ export default class StationsController {
 
     if (station.status !== 'standby' || !station.userIn) {
         return response.badRequest({ status: 'error', msg: 'La estación no está en standby o no tiene usuario asignado' })
+    }
+
+    if (!stationAccess) {
+        station.userIn = null
+        station.status = 'online'
+        await station.save()
+
+        return response.ok({
+        status: 'error',
+        msg: 'Acceso denegado por trabajador, estación liberada',
+        data: { stationId: station.id, status: station.status, userIn: station.userIn },
+        })
     }
 
     // Buscar QR asociado al usuario
