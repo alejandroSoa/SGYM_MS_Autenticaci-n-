@@ -178,8 +178,8 @@ export default class StationsController {
         station.status = 'online'
         await station.save()
 
-        return response.ok({
-        status: 'error',
+        return response.status(403).json({
+        status: 'denied',
         msg: 'Acceso denegado por trabajador, estación liberada',
         data: { stationId: station.id, status: station.status, userIn: station.userIn },
         })
