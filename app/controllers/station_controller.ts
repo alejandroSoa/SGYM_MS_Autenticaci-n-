@@ -159,8 +159,13 @@ export default class StationsController {
     public async releaseStationStandby({ request, response }: HttpContext) {
     const { stationToken, stationAccess } = request.only(['stationToken', 'stationAccess'])
 
-    const accessBool = String(stationAccess).toLowerCase() === 'true'
-
+    let accessBool;
+    if (typeof stationAccess === 'boolean') {
+    accessBool = stationAccess;
+    } else {
+    accessBool = String(stationAccess).toLowerCase() === 'true';
+    }
+    
     if (!stationToken || stationAccess === undefined) {
         return response.badRequest({ status: 'error', msg: 'stationToken y stationAccess son requeridos' })
     }
