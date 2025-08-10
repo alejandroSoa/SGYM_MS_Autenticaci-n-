@@ -183,6 +183,7 @@ export default class StationsController {
     if (!accessBool) {
         station.userIn = null
         station.status = 'online'
+        station.lastActionStatus = 'denied' 
         await station.save()
 
         return response.status(403).json({
@@ -222,6 +223,7 @@ export default class StationsController {
 
     station.userIn = null
     station.status = 'online'
+    station.lastActionStatus = 'granted'
     await station.save()
 
     return response.ok({
@@ -324,40 +326,42 @@ export default class StationsController {
 
       // 11 - Verificar estado de estación por stationToken
     public async checkStationStatus({ request, response }: HttpContext) {
-        const { stationToken } = request.only(['stationToken'])
+    const { stationToken } = request.only(['stationToken'])
 
-        if (!stationToken) {
+    if (!stationToken) {
         return response.badRequest({
-            status: 'error',
-            msg: 'stationToken es requerido',
-        })
-        }
-
-        const station = await Station.findBy('stationToken', stationToken)
-
-        if (!station) {
-        return response.notFound({
-            status: 'error',
-            msg: 'Estación no encontrada',
-        })
-        }
-
-        return response.ok({
-        status: 'success',
-        data: {
-            id: station.id,
-            stationId: station.stationId,
-            type: station.type,
-            location: station.location,
-            firmwareVersion: station.firmwareVersion,
-            status: station.status,
-            userIn: station.userIn,
-            lastPing: station.lastPing?.toISO(),
-            hardwareId: station.hardwareId,
-        },
-        msg: 'Estado de estación obtenido correctamente',
+        status: 'error',
+        msg: 'stationToken es requerido',
         })
     }
+
+    const station = await Station.findBy('stationToken', stationToken)
+
+    if (!station) {
+        return response.notFound({
+        status: 'error',
+        msg: 'Estación no encontrada',
+        })
+    }
+
+    return response.ok({
+        status: 'success',
+        data: {
+        id: station.id,
+        stationId: station.stationId,
+        type: station.type,
+        location: station.location,
+        firmwareVersion: station.firmwareVersion,
+        status: station.status,
+        userIn: station.userIn,
+        lastActionStatus: station.lastActionStatus,  // <-- incluimos aquí
+        lastPing: station.lastPing?.toISO(),
+        hardwareId: station.hardwareId,
+        },
+        msg: 'Estado de estación obtenido correctamente',
+    })
+    }
+
 
 }
 

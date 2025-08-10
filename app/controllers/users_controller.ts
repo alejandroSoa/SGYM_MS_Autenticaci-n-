@@ -150,6 +150,7 @@ export default class UsersController {
       // 6. Asignar usuario a estación y poner en standby
       station.userIn = user.id
       station.status = 'standby'
+      station.lastActionStatus = null
       await station.save()
 
       const userData = {

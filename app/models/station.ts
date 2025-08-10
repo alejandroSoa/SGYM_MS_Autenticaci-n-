@@ -1,6 +1,5 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
-//aaa
 
 export default class Station extends BaseModel {
   static table = 'stations'
@@ -28,6 +27,9 @@ export default class Station extends BaseModel {
 
   @column()
   declare userIn: number | null
+
+  @column()
+  declare lastActionStatus: 'denied' | 'granted' | null  
 
   @column.dateTime()
   declare lastPing: DateTime | null
