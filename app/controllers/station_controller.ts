@@ -159,6 +159,8 @@ export default class StationsController {
     public async releaseStationStandby({ request, response }: HttpContext) {
     const { stationToken, stationAccess } = request.only(['stationToken', 'stationAccess'])
 
+    const accessBool = String(stationAccess).toLowerCase() === 'true'
+
     if (!stationToken || stationAccess === undefined) {
         return response.badRequest({ status: 'error', msg: 'stationToken y stationAccess son requeridos' })
     }
@@ -173,7 +175,7 @@ export default class StationsController {
         return response.badRequest({ status: 'error', msg: 'La estación no está en standby o no tiene usuario asignado' })
     }
 
-    if (!stationAccess) {
+    if (!accessBool) {
         station.userIn = null
         station.status = 'online'
         await station.save()
