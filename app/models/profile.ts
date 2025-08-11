@@ -2,8 +2,9 @@ import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import User from './user.js'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import SoftDelete from './Traits/soft_delete.js'
 
-export default class Profile extends BaseModel {
+export default class Profile extends SoftDelete(BaseModel) {
    static table = 'profile'
   @column({ isPrimary: true })
   declare id: number

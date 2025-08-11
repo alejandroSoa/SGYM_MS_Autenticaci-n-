@@ -33,7 +33,7 @@ export default class StationsController {
         })
     }
 
-    await station.delete()
+    await station.softDelete()
 
     return response.ok({
         status: 'success',
@@ -211,7 +211,7 @@ export default class StationsController {
         if(qrRecord.status !== 'SALIDA_OK' && qrRecord.status !== 'GENERADO'){
             qrRecord.status = 'SALIDA_OK'
             await qrRecord.save()
-            await qrRecord.delete()
+            await qrRecord.softDelete()
         }
         } else {
         return response.badRequest({

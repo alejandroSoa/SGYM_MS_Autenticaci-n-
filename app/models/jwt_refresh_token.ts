@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import SoftDelete from '#models/Traits/soft_delete'
 
-export default class JwtRefreshToken extends BaseModel {
+export default class JwtRefreshToken extends SoftDelete(BaseModel) {
    static table = 'jwt_refresh_tokens'
   @column({ isPrimary: true })
   declare id: number
@@ -32,4 +33,7 @@ export default class JwtRefreshToken extends BaseModel {
 
   @column.dateTime()
   declare lastUsedAt: DateTime | null
+
+    @column.dateTime({ serializeAs: null })
+  declare deletedAt: DateTime | null
 }

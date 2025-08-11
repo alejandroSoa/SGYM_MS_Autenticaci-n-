@@ -1,6 +1,7 @@
 import { BaseModel, column, beforeSave } from '@adonisjs/lucid/orm'
+import SoftDelete from './Traits/soft_delete.js'
 
-export default class Otp extends BaseModel {
+export default class Otp extends SoftDelete(BaseModel) {
   static table = 'otps'
   @column({ isPrimary: true })
   declare id: number

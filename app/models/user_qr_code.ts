@@ -1,8 +1,9 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import SoftDelete from './Traits/soft_delete.js'
 //aaa
 
-export default class UserQrCode extends BaseModel {
+export default class UserQrCode extends SoftDelete(BaseModel) {
   static table = 'user_qr_code'
 
   @column({ isPrimary: true })

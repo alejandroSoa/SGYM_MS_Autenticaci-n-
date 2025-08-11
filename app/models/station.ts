@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
+import SoftDelete from './Traits/soft_delete.js'
 
-export default class Station extends BaseModel {
+export default class Station extends SoftDelete(BaseModel) {
   static table = 'stations'
 
   @column({ isPrimary: true })
