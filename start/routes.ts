@@ -137,3 +137,5 @@ router.post('/oauth/token/refresh', [UsersController, 'getrefresh'])
 
 
 router.get('/oauth/access/payments', [AccessPaymentsController, 'acces']).use(middleware.auth())
+
+router.get('/oauth/access/permissions', [AccessPaymentsController, 'hasPermission']).use(middleware.auth())
