@@ -463,7 +463,7 @@ const refreshToken = await User.refreshTokens.create(user)
         })
       }
   
-      await qrUser.delete()
+      await qrUser.softDelete()
   
       return response.ok({
         status: 'success',
