@@ -92,7 +92,7 @@ export default class AuthController {
         oldEmail: email,
       })
     }
-    const refreshToken = await User.refreshTokens.create(user)
+  
     const token = await auth.use('jwt').generate(user)
     const jwt = token as { token: string }
     let redirectUrl: URL
@@ -101,20 +101,11 @@ export default class AuthController {
     } catch {
       return response.redirect('/oauth/login')
     }
-    // Serializar el refreshToken completo como JSON
-const refreshTokenEncoded = encodeURIComponent(JSON.stringify({
-  identifier: refreshToken.identifier,
-  tokenableId: refreshToken.tokenableId,
-  hash: refreshToken.hash,
-  createdAt: refreshToken.createdAt,
-  updatedAt: refreshToken.updatedAt,
-  expiresAt: refreshToken.expiresAt,
-  abilities: refreshToken.abilities,
-}))
+
 
     redirectUrl.searchParams.set('access_token', jwt.token)
 
-    
+    console.log('Redirecting to:', redirectUrl.toString())
     
     return response.redirect(redirectUrl.toString())
   }
@@ -266,8 +257,9 @@ public async forgotPassword({ request, view }: HttpContext) {
 
     user.password = password
     await user.save()
-  const refreshToken = await User.refreshTokens.create(user)
+  
     const newToken = await auth.use('jwt').generate(user)
+    const jwt = newToken as { token: string }
 
     let redirectUrl: URL
     try {
@@ -276,19 +268,11 @@ public async forgotPassword({ request, view }: HttpContext) {
       return response.redirect('/oauth/login')
     }
         // Serializar el refreshToken completo como JSON
-const refreshTokenEncoded = encodeURIComponent(JSON.stringify({
-  identifier: refreshToken.identifier,
-  tokenableId: refreshToken.tokenableId,
-  hash: refreshToken.hash,
-  createdAt: refreshToken.createdAt,
-  updatedAt: refreshToken.updatedAt,
-  expiresAt: refreshToken.expiresAt,
-  abilities: refreshToken.abilities,
-}))
 
 
 
-    redirectUrl.searchParams.set('access_token', newToken.token)
+
+    redirectUrl.searchParams.set('access_token', jwt.token)
     return response.redirect(redirectUrl.toString())
   }
 
@@ -382,28 +366,20 @@ if (existingProfile) {
       })
     }
 
-    const token = await auth.use('jwt').generate(user)
-  const refreshToken = await User.refreshTokens.create(user)
-    let redirectUrl: URL
-    try {
-      redirectUrl = new URL(redirectUri)
-    } catch {
-      return response.redirect('/oauth/login')
-    }
-        // Serializar el refreshToken completo como JSON
-const refreshTokenEncoded = encodeURIComponent(JSON.stringify({
-  identifier: refreshToken.identifier,
-  tokenableId: refreshToken.tokenableId,
-  hash: refreshToken.hash,
-  createdAt: refreshToken.createdAt,
-  updatedAt: refreshToken.updatedAt,
-  expiresAt: refreshToken.expiresAt,
-  abilities: refreshToken.abilities,
-}))
+  const tokenResult = await auth.use('jwt').generate(user)
+  // const refreshToken = await User.refreshTokens.create(user) // Remove or fix this line if not needed
+  let redirectUrl: URL
+  try {
+    redirectUrl = new URL(redirectUri)
+  } catch {
+    return response.redirect('/oauth/login')
+  }
 
-
-    redirectUrl.searchParams.set('access_token', token.token)
-    return response.redirect(redirectUrl.toString())
+  if ('token' in tokenResult) {
+    redirectUrl.searchParams.set('access_token', tokenResult.token)
+  }
+  
+  return response.redirect(redirectUrl.toString())
   } catch (error) {
     console.error(error)
     return view.render('oauth/registerprofile', {

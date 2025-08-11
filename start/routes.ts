@@ -10,6 +10,7 @@
 
 import router from '@adonisjs/core/services/router'
 import { middleware } from './kernel.js'
+import AccessPaymentsController from '#controllers/access_payments_controller'
 const UsersController = () => import('#controllers/users_controller')
 const OauthController = () => import('#controllers/OAuth/auth_controller')
 const StationsController = () => import('#controllers/station_controller')
@@ -132,3 +133,7 @@ router.get('/access/app', [UsersController, 'accesApp']).use(middleware.auth())
 
 
 router.post('/oauth/token/refresh', [UsersController, 'getrefresh'])
+
+
+
+router.get('/oauth/access/payments', [AccessPaymentsController, 'acces']).use(middleware.auth())
