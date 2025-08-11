@@ -109,7 +109,7 @@ router.post('/station', [StationsController, 'createStation'])
 // Ruta 11 - Verificar estado estación
 router.post('/station/status', [StationsController, 'checkStationStatus'])
 
-// ----- Servicios Hechos-----
+// ----- Servicios Hechos Ya-----
 // 1 - Ruta para asignar usuario a estación (Guardar ID en la estación).
 // 2 - Ruta para obtener detalles de estación (En base a token_estacion).
 // 3 - Ruta para validar y actualizar estado de QR:
