@@ -211,7 +211,7 @@ export default class StationsController {
         if(qrRecord.status !== 'SALIDA_OK' && qrRecord.status !== 'GENERADO'){
             qrRecord.status = 'SALIDA_OK'
             await qrRecord.save()
-            await qrRecord.softDelete()
+            await qrRecord.delete()
         }
         } else {
         return response.badRequest({
