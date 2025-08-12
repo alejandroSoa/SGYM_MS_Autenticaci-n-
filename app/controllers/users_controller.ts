@@ -502,6 +502,7 @@ const refreshToken = await User.refreshTokens.create(user)
     }
 
     let qrRecord = await UserQrCode.findBy('userId', user.id)
+    console.log(qrRecord)
 
     if (!qrRecord) {
       // No tiene QR → generar nuevo en estado GENERADO
