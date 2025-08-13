@@ -51,6 +51,9 @@ router.group(() => {
   // Servicio 5 - Obtener ID del usuario en estación standby, Para luego ver perfil
   router.get('/stations/user-standby', [StationsController, 'getUserInStandby']).use(middleware.auth())
 
+  // Ruta para editar estación existente
+  router.put('/station', [StationsController, 'updateStation']).use(middleware.auth())
+
   // Servicio 6 - Liberar estación de standby (confirma usuario, libera estación)
   router.post('/stations/release-standby', [StationsController, 'releaseStationStandby']).use(middleware.auth())
 
@@ -60,6 +63,8 @@ router.group(() => {
   // Servicio 8 - Generar o devolver QR existente
   router.post('/users/:id/qr', [UsersController, 'generateOrGetQr']).use(middleware.auth())
 
+  // Ruta 12 - Obtener código de Arduino para nueva estación
+  router.get('/station/arduino-code', [StationsController, 'getArduinoCode']).use(middleware.auth())
 
   router.get('/login', [OauthController, 'showLogin']).as('oauth.login')
   router.get('/register', [OauthController, 'showRegister']).as('oauth.register')

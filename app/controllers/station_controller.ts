@@ -2,6 +2,8 @@ import Station from '#models/station'
 import { HttpContext } from '@adonisjs/core/http'
 import UserQrCode from '#models/user_qr_code' 
 import { randomBytes } from 'crypto'
+import fs from 'fs'
+import path from 'path'
 
 export default class StationsController {
     public async getAllStations({ response }: HttpContext) {
@@ -324,6 +326,81 @@ export default class StationsController {
         })
     }
 
+    // Editar estación existente
+    public async updateStation({ request, response }: HttpContext) {
+        const { stationToken } = request.only(['stationToken'])
+        const {
+            type,
+            location,
+            firmware_version,
+            status,
+            hardware_id,
+        } = request.only([
+            'type',
+            'location',
+            'firmware_version',
+            'status',
+            'hardware_id',
+        ])
+
+        if (!stationToken) {
+            return response.badRequest({
+                status: 'error',
+                msg: 'stationToken es requerido',
+            })
+        }
+
+        const station = await Station.findBy('stationToken', stationToken)
+
+        if (!station) {
+            return response.notFound({
+                status: 'error',
+                msg: 'Estación no encontrada',
+            })
+        }
+
+        // Validar tipo si se proporciona
+        if (type && !['entrada', 'salida'].includes(type)) {
+            return response.badRequest({
+                status: 'error',
+                msg: 'El tipo de estación debe ser "entrada" o "salida"',
+            })
+        }
+
+        // Validar status si se proporciona
+        if (status && !['online', 'offline', 'standby'].includes(status)) {
+            return response.badRequest({
+                status: 'error',
+                msg: 'El status debe ser "online", "offline" o "standby"',
+            })
+        }
+
+        // Actualizar solo los campos proporcionados
+        if (type !== undefined) station.type = type
+        if (location !== undefined) station.location = location
+        if (firmware_version !== undefined) station.firmwareVersion = firmware_version
+        if (status !== undefined) station.status = status
+        if (hardware_id !== undefined) station.hardwareId = hardware_id
+
+        await station.save()
+
+        return response.ok({
+            status: 'success',
+            data: {
+                id: station.id,
+                stationId: station.stationId,
+                stationToken: station.stationToken,
+                type: station.type,
+                location: station.location,
+                firmwareVersion: station.firmwareVersion,
+                status: station.status,
+                userIn: station.userIn,
+                hardwareId: station.hardwareId,
+            },
+            msg: 'Estación actualizada correctamente',
+        })
+    }
+
       // 11 - Verificar estado de estación por stationToken
     public async checkStationStatus({ request, response }: HttpContext) {
     const { stationToken } = request.only(['stationToken'])
@@ -361,7 +438,47 @@ export default class StationsController {
         msg: 'Estado de estación obtenido correctamente',
     })
     }
-
-
+    
+    // 12 - Obtener código de Arduino para nueva estación
+    public async getArduinoCode({ response }: HttpContext) {
+        try {
+            // Construir la ruta al archivo Arduino
+            const arduinoFilePath = path.join(process.cwd(), 'resources', 'arduino', 'station_control.ino')
+            
+            // Leer el archivo
+            const arduinoCode = fs.readFileSync(arduinoFilePath, 'utf8')
+            
+            return response.ok({
+                status: 'success',
+                data: {
+                    arduinoCode: arduinoCode,
+                    description: 'Código base para Arduino con control de LEDs RGB',
+                    instructions: {
+                        commands: {
+                            'G1': 'Encender LED verde',
+                            'G0': 'Apagar LED verde',
+                            'A1': 'Encender LED amarillo',
+                            'A0': 'Apagar LED amarillo',
+                            'R1': 'Encender LED rojo',
+                            'R0': 'Apagar LED rojo'
+                        },
+                        pins: {
+                            green: 12,
+                            yellow: 11,
+                            red: 10
+                        }
+                    }
+                },
+                msg: 'Código de Arduino obtenido correctamente'
+            })
+        } catch (error) {
+            return response.internalServerError({
+                status: 'error',
+                msg: 'Error al leer el archivo de código Arduino',
+                error: error.message
+            })
+        }
+    }
+    
 }
 
