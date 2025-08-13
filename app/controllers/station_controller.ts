@@ -4,6 +4,7 @@ import UserQrCode from '#models/user_qr_code'
 import { randomBytes } from 'crypto'
 import fs from 'fs'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
 export default class StationsController {
     public async getAllStations({ response }: HttpContext) {
@@ -431,7 +432,7 @@ export default class StationsController {
         firmwareVersion: station.firmwareVersion,
         status: station.status,
         userIn: station.userIn,
-        lastActionStatus: station.lastActionStatus,  // <-- incluimos aquí
+        lastActionStatus: station.lastActionStatus,  
         lastPing: station.lastPing?.toISO(),
         hardwareId: station.hardwareId,
         },
@@ -442,6 +443,9 @@ export default class StationsController {
     // 12 - Obtener código de Arduino para nueva estación
     public async getArduinoCode({ response }: HttpContext) {
         try {
+
+            const __filename = fileURLToPath(import.meta.url)
+            const __dirname = path.dirname(__filename)
             // Construir la ruta al archivo Arduino
             const arduinoFilePath = path.join(__dirname, '..', '..', 'resources', 'arduino', 'station_control.ino');
             
