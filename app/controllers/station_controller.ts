@@ -2,8 +2,6 @@ import Station from '#models/station'
 import { HttpContext } from '@adonisjs/core/http'
 import UserQrCode from '#models/user_qr_code' 
 import { randomBytes } from 'crypto'
-import fs from 'fs'
-import path from 'path'
 
 export default class StationsController {
     public async getAllStations({ response }: HttpContext) {
@@ -441,46 +439,76 @@ export default class StationsController {
     
     // 12 - Obtener código de Arduino para nueva estación
     public async getArduinoCode({ response }: HttpContext) {
-        try {
-            
-            const filePath = path.join(__dirname, '..', '..', 'resources', 'arduino', 'station_control.ino');
-            const arduinoFilePath = fs.readFileSync(filePath, 'utf8');
+        const arduinoCode = `void setup() {
+  Serial.begin(9600); // Inicializa comunicación serie
+  pinMode(12, OUTPUT); // LED verde
+  pinMode(11, OUTPUT); // LED amarillo
+  pinMode(10, OUTPUT); // LED rojo
+  
+  // Establecer estado inicial: solo LED rojo encendido
+  digitalWrite(12, LOW);  // Verde OFF
+  digitalWrite(11, LOW);  // Amarillo OFF
+  digitalWrite(10, HIGH); // Rojo ON (estado por defecto)
+  
+  // Limpiar buffer de entrada
+  while(Serial.available() > 0) {
+    Serial.read();
+  }
+  
+  // Enviar respuesta de confirmación (opcional)
+  Serial.println("READY");
+}
 
-            // Construir la ruta al archivo Arduino
+void loop() {
+  if (Serial.available() >= 2) { // Espera 2 caracteres: letra + estado
+    char led = Serial.read();   // G, A o R
+    char estado = Serial.read(); // 1 = ON, 0 = OFF
+    
+    // Limpiar cualquier carácter extra (como \\n)
+    while(Serial.available() > 0) {
+      Serial.read();
+    }
 
-            // Leer el archivo
-            const arduinoCode = fs.readFileSync(arduinoFilePath, 'utf8')
-            
-            return response.ok({
-                status: 'success',
-                data: {
-                    arduinoCode: arduinoCode,
-                    description: 'Código base para Arduino con control de LEDs RGB',
-                    instructions: {
-                        commands: {
-                            'G1': 'Encender LED verde',
-                            'G0': 'Apagar LED verde',
-                            'A1': 'Encender LED amarillo',
-                            'A0': 'Apagar LED amarillo',
-                            'R1': 'Encender LED rojo',
-                            'R0': 'Apagar LED rojo'
-                        },
-                        pins: {
-                            green: 12,
-                            yellow: 11,
-                            red: 10
-                        }
+    if (led == 'G' || led == 'g') {
+      digitalWrite(12, estado == '1' ? HIGH : LOW);
+    }
+    else if (led == 'A' || led == 'a') {
+      digitalWrite(11, estado == '1' ? HIGH : LOW);
+    }
+    else if (led == 'R' || led == 'r') {
+      digitalWrite(10, estado == '1' ? HIGH : LOW);
+    }
+    
+    // Opcional: enviar confirmación de que el comando fue recibido
+    Serial.print("OK:");
+    Serial.print(led);
+    Serial.println(estado);
+  }
+}`
+        
+        return response.ok({
+            status: 'success',
+            data: {
+                arduinoCode: arduinoCode,
+                description: 'Código base para Arduino con control de LEDs RGB',
+                instructions: {
+                    commands: {
+                        'G1': 'Encender LED verde',
+                        'G0': 'Apagar LED verde',
+                        'A1': 'Encender LED amarillo',
+                        'A0': 'Apagar LED amarillo',
+                        'R1': 'Encender LED rojo',
+                        'R0': 'Apagar LED rojo'
+                    },
+                    pins: {
+                        green: 12,
+                        yellow: 11,
+                        red: 10
                     }
-                },
-                msg: 'Código de Arduino obtenido correctamente'
-            })
-        } catch (error) {
-            return response.internalServerError({
-                status: 'error',
-                msg: 'Error al leer el archivo de código Arduino',
-                error: error.message
-            })
-        }
+                }
+            },
+            msg: 'Código de Arduino obtenido correctamente'
+        })
     }
     
 }
