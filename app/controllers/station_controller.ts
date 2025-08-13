@@ -443,7 +443,7 @@ export default class StationsController {
     public async getArduinoCode({ response }: HttpContext) {
         try {
             // Construir la ruta al archivo Arduino
-            const arduinoFilePath = path.join(process.cwd(), 'resources', 'arduino', 'station_control.ino')
+            const arduinoFilePath = path.join(__dirname, '..', '..', 'resources', 'arduino', 'station_control.ino');
             
             // Leer el archivo
             const arduinoCode = fs.readFileSync(arduinoFilePath, 'utf8')
