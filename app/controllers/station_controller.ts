@@ -442,9 +442,11 @@ export default class StationsController {
     // 12 - Obtener código de Arduino para nueva estación
     public async getArduinoCode({ response }: HttpContext) {
         try {
+            
+            const filePath = path.join(__dirname, '..', '..', 'resources', 'arduino', 'station_control.ino');
+            const arduinoFilePath = fs.readFileSync(filePath, 'utf8');
 
             // Construir la ruta al archivo Arduino
-            const arduinoFilePath = path.join('resources', 'arduino', 'station_control.ino')
 
             // Leer el archivo
             const arduinoCode = fs.readFileSync(arduinoFilePath, 'utf8')
