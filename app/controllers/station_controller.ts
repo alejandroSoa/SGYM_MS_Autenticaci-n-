@@ -447,8 +447,8 @@ export default class StationsController {
             const __filename = fileURLToPath(import.meta.url)
             const __dirname = path.dirname(__filename)
             // Construir la ruta al archivo Arduino
-            const arduinoFilePath = path.join(__dirname, '..', '..', 'resources', 'arduino', 'station_control.ino');
-            
+            const arduinoFilePath = path.join(__dirname, '..', '..', 'resources', 'arduino', 'station_control.ino')
+
             // Leer el archivo
             const arduinoCode = fs.readFileSync(arduinoFilePath, 'utf8')
             
