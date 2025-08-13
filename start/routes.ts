@@ -63,9 +63,6 @@ router.group(() => {
   // Servicio 8 - Generar o devolver QR existente
   router.post('/users/:id/qr', [UsersController, 'generateOrGetQr']).use(middleware.auth())
 
-  // Ruta 12 - Obtener código de Arduino para nueva estación
-  router.get('/station/arduino-code', [StationsController, 'getArduinoCode']).use(middleware.auth())
-
   router.get('/login', [OauthController, 'showLogin']).as('oauth.login')
   router.get('/register', [OauthController, 'showRegister']).as('oauth.register')
   router.get('/forgotpassword', [OauthController, 'showForgotPassword']).as('oauth.forgotpassword')
@@ -114,6 +111,9 @@ router.post('/station', [StationsController, 'createStation'])
 // Ruta 11 - Verificar estado estación
 router.post('/station/status', [StationsController, 'checkStationStatus'])
 
+  // Ruta 12 - Obtener código de Arduino para nueva estación
+  router.get('/station/arduino-code', [StationsController, 'getArduinoCode'])
+  
 // ----- Servicios Hechos -----
 // 1 - Ruta para asignar usuario a estación (Guardar ID en la estación).
 // 2 - Ruta para obtener detalles de estación (En base a token_estacion).
