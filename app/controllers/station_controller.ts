@@ -4,7 +4,6 @@ import UserQrCode from '#models/user_qr_code'
 import { randomBytes } from 'crypto'
 import fs from 'fs'
 import path from 'path'
-import { fileURLToPath } from 'url'
 
 export default class StationsController {
     public async getAllStations({ response }: HttpContext) {
@@ -444,10 +443,8 @@ export default class StationsController {
     public async getArduinoCode({ response }: HttpContext) {
         try {
 
-            const __filename = fileURLToPath(import.meta.url)
-            const __dirname = path.dirname(__filename)
             // Construir la ruta al archivo Arduino
-            const arduinoFilePath = path.join(__dirname, '..', '..', 'resources', 'arduino', 'station_control.ino')
+            const arduinoFilePath = path.join('resources', 'arduino', 'station_control.ino')
 
             // Leer el archivo
             const arduinoCode = fs.readFileSync(arduinoFilePath, 'utf8')
