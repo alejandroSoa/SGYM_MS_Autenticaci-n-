@@ -33,7 +33,7 @@ export default class StationsController {
         })
     }
 
-    await station.softDelete()
+    await station.delete()
 
     return response.ok({
         status: 'success',
